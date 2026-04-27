@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from app.services_imm import get_weather
-from app.services_transport import get_transport_status
+from app.services_weather_imm import get_weather
+from app.services_transport_imm import get_transport_status
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 load_dotenv()

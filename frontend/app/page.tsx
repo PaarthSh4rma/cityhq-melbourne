@@ -13,6 +13,9 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
+const API_BASE_URL = "http://127.0.0.1:8000";
+const POLL_INTERVAL_MS = 60_000;
+
 type Weather = {
   temperature: string | number;
   condition: string;
@@ -66,21 +69,39 @@ const fadeUp = {
 
 export default function Home() {
   const [time, setTime] = useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<string | null>(null);
+
   const [weather, setWeather] = useState<Weather | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [weatherError, setWeatherError] = useState(false);
+
   const [transport, setTransport] = useState<Transport | null>(null);
+  const [transportError, setTransportError] = useState(false);
 
   useEffect(() => {
+    const markRefresh = () => {
+      setLastRefresh(
+        new Date().toLocaleTimeString(undefined, {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })
+      );
+    };
+
     const fetchWeather = async () => {
       try {
         setWeatherError(false);
-        const res = await fetch("http://127.0.0.1:8000/weather");
 
-        if (!res.ok) throw new Error("Weather request failed");
+        const res = await fetch(`${API_BASE_URL}/weather`);
+
+        if (!res.ok) {
+          throw new Error("Weather request failed");
+        }
 
         const data = await res.json();
         setWeather(data);
+        markRefresh();
       } catch (err) {
         console.error("Failed to fetch weather:", err);
         setWeatherError(true);
@@ -89,27 +110,35 @@ export default function Home() {
       }
     };
 
-    fetchWeather();
-    const interval = setInterval(fetchWeather, 60_000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
     const fetchTransport = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/transport");
+        setTransportError(false);
+
+        const res = await fetch(`${API_BASE_URL}/transport`);
+
+        if (!res.ok) {
+          throw new Error("Transport request failed");
+        }
+
         const data = await res.json();
         setTransport(data);
+        markRefresh();
       } catch (err) {
         console.error("Failed to fetch transport:", err);
+        setTransportError(true);
       }
     };
 
+    fetchWeather();
     fetchTransport();
-    const interval = setInterval(fetchTransport, 60_000);
 
-    return () => clearInterval(interval);
+    const weatherInterval = setInterval(fetchWeather, POLL_INTERVAL_MS);
+    const transportInterval = setInterval(fetchTransport, POLL_INTERVAL_MS);
+
+    return () => {
+      clearInterval(weatherInterval);
+      clearInterval(transportInterval);
+    };
   }, []);
 
   useEffect(() => {
@@ -146,11 +175,13 @@ export default function Home() {
     },
     {
       title: "Transit Network",
-      value: transport?.status ?? "Loading",
+      value: transportError ? "Offline" : transport?.status ?? "Loading",
       unit: "",
-      change: transport
-        ? `${transport.minor_delays} active disruptions · updated just now`
-        : "Monitoring network conditions",
+      change: transportError
+        ? "Transport feed unavailable"
+        : transport
+          ? `${transport.minor_delays} active disruptions · updated just now`
+          : "Monitoring network conditions",
       icon: TrainFront,
       accent: "amber",
     },
@@ -269,22 +300,35 @@ export default function Home() {
                 </div>
 
                 <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="text-zinc-500">Last refresh</span>
+                  <span className="text-zinc-300">
+                    {lastRefresh ?? "Syncing"}
+                  </span>
+                </div>
+
+                <div className="mb-2 flex items-center justify-between text-sm">
                   <span className="text-zinc-500">Weather API</span>
                   <span className="text-zinc-300">
-                    {weatherError ? "Offline" : "Active"}
+                    {weatherError ? "Offline" : weather ? "Active" : "Syncing"}
                   </span>
                 </div>
 
                 <div className="mb-2 flex items-center justify-between text-sm">
                   <span className="text-zinc-500">Transit Feed</span>
                   <span className="text-zinc-300">
-                    {transport ? "Active" : "Mock"}
+                    {transportError
+                      ? "Offline"
+                      : transport
+                        ? "Active"
+                        : "Syncing"}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-500">Coverage</span>
-                  <span className="text-zinc-300">Metro region</span>
+                  <span className="text-zinc-500">Polling</span>
+                  <span className="text-zinc-300">
+                    {POLL_INTERVAL_MS / 1000}s
+                  </span>
                 </div>
               </div>
             </motion.div>
@@ -406,11 +450,7 @@ export default function Home() {
                   ["72%", "62%", "St Kilda"],
                   ["34%", "58%", "Docklands"],
                 ].map(([left, top, label]) => (
-                  <div
-                    key={label}
-                    className="absolute"
-                    style={{ left, top }}
-                  >
+                  <div key={label} className="absolute" style={{ left, top }}>
                     <div className="h-3 w-3 rounded-full bg-cyan-300 shadow-[0_0_18px_rgba(34,211,238,0.9)]" />
                     <p className="mt-2 rounded-full border border-white/10 bg-black/40 px-2 py-1 text-xs text-zinc-300 backdrop-blur">
                       {label}
@@ -468,6 +508,7 @@ export default function Home() {
                         {alert.severity}
                       </span>
                     </div>
+
                     <p className="text-sm leading-6 text-zinc-300">
                       {alert.title}
                     </p>
@@ -497,10 +538,7 @@ export default function Home() {
               <div className="flex h-56 items-end gap-3 rounded-3xl border border-white/10 bg-black/20 p-5">
                 {[38, 44, 52, 48, 61, 68, 73, 66, 71, 78, 74, 82].map(
                   (height, index) => (
-                    <div
-                      key={index}
-                      className="flex flex-1 items-end"
-                    >
+                    <div key={index} className="flex flex-1 items-end">
                       <div
                         className="w-full rounded-t-xl bg-cyan-300/70 shadow-[0_0_18px_rgba(34,211,238,0.16)]"
                         style={{ height: `${height}%` }}

@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import {
   Activity,
@@ -8,6 +9,14 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { motion } from "framer-motion";
+
+type Weather = {
+  temperature: string | number;
+  condition: string;
+  description: string;
+  wind_speed: string | number;
+  city: string;
+};
 
 const metricCards = [
   {
@@ -26,9 +35,9 @@ const metricCards = [
   },
   {
     title: "Weather",
-    value: "18°",
-    unit: "Cloudy",
-    change: "Light wind",
+    value: "--°",
+    unit: "Loading",
+    change: "Fetching live data",
     icon: CloudRain,
   },
   {
@@ -41,27 +50,12 @@ const metricCards = [
 ];
 
 const alerts = [
-  {
-    text: "Minor tram disruption impacting CBD northbound flow",
-    level: "warning",
-  },
-  {
-    text: "Event traffic building near Rod Laver Arena precinct",
-    level: "info",
-  },
-  {
-    text: "Weather conditions may suppress bay-side foot traffic",
-    level: "low",
-  },
+  { text: "Minor tram disruption impacting CBD northbound flow", level: "warning" },
+  { text: "Event traffic building near Rod Laver Arena precinct", level: "info" },
+  { text: "Weather conditions may suppress bay-side foot traffic", level: "low" },
 ];
 
-const sidebarItems = [
-  "Overview",
-  "Transit",
-  "Weather",
-  "Events",
-  "Forecasting",
-];
+const sidebarItems = ["Overview", "Transit", "Weather", "Events", "Forecasting"];
 
 const fadeUp = {
   initial: { opacity: 0, y: 14 },
@@ -70,31 +64,46 @@ const fadeUp = {
 
 export default function Home() {
   const [time, setTime] = useState<string | null>(null);
+  const [weather, setWeather] = useState<Weather | null>(null);
 
-useEffect(() => {
-  const updateTime = () => {
-    const now = new Date();
-    const formatted = now.toLocaleString(undefined, {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-    setTime(formatted);
-  };
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/weather");
+        const data = await res.json();
+        setWeather(data);
+      } catch (err) {
+        console.error("Failed to fetch weather:", err);
+      }
+    };
 
-  updateTime();
-  const interval = setInterval(updateTime, 1000);
+    fetchWeather();
+  }, []);
 
-  return () => clearInterval(interval);
-}, []);
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setTime(
+        now.toLocaleString(undefined, {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })
+      );
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
       <div className="flex min-h-screen">
-        {/* Sidebar */}
         <aside className="w-72 border-r border-zinc-800 bg-zinc-950/80 px-6 py-8">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -173,9 +182,7 @@ useEffect(() => {
           </div>
         </aside>
 
-        {/* Main Content */}
         <section className="flex-1 px-8 py-8">
-          {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
@@ -196,16 +203,30 @@ useEffect(() => {
               <p className="text-xs uppercase tracking-wider text-zinc-500">
                 Last Updated
               </p>
-              <p className="mt-1 text-sm text-zinc-200">
-                    {time ?? "--"}
-              </p>
+              <p className="mt-1 text-sm text-zinc-200">{time ?? "--"}</p>
             </div>
           </motion.div>
 
-          {/* Metrics */}
           <div className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-4">
             {metricCards.map((card, index) => {
               const Icon = card.icon;
+              const isWeather = card.title === "Weather";
+
+              const value = isWeather
+                ? weather
+                  ? `${Math.round(Number(weather.temperature))}°`
+                  : "--°"
+                : card.value;
+
+              const unit = isWeather
+                ? weather?.condition ?? "Loading"
+                : card.unit;
+
+              const change = isWeather
+                ? weather
+                  ? `Wind ${weather.wind_speed} km/h`
+                  : "Fetching live data"
+                : card.change;
 
               return (
                 <motion.div
@@ -228,22 +249,18 @@ useEffect(() => {
 
                   <div className="flex items-end gap-2">
                     <span className="text-4xl font-semibold tracking-tight">
-                      {card.value}
+                      {value}
                     </span>
-                    <span className="pb-1 text-sm text-zinc-500">
-                      {card.unit}
-                    </span>
+                    <span className="pb-1 text-sm text-zinc-500">{unit}</span>
                   </div>
 
-                  <p className="mt-3 text-sm text-zinc-400">{card.change}</p>
+                  <p className="mt-3 text-sm text-zinc-400">{change}</p>
                 </motion.div>
               );
             })}
           </div>
 
-          {/* Main panels */}
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            {/* Map */}
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
@@ -269,7 +286,6 @@ useEffect(() => {
               </div>
             </motion.div>
 
-            {/* Alerts */}
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
@@ -297,8 +313,8 @@ useEffect(() => {
                       alert.level === "warning"
                         ? "border-amber-500/20 bg-amber-500/5"
                         : alert.level === "info"
-                          ? "border-cyan-500/20 bg-cyan-500/5"
-                          : "border-zinc-800 bg-zinc-950"
+                        ? "border-cyan-500/20 bg-cyan-500/5"
+                        : "border-zinc-800 bg-zinc-950"
                     }`}
                   >
                     <p className="text-sm leading-6 text-zinc-300">
@@ -310,7 +326,6 @@ useEffect(() => {
             </motion.div>
           </div>
 
-          {/* Bottom panels */}
           <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
             <motion.div
               initial={{ opacity: 0, y: 14 }}

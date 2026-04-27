@@ -10,13 +10,27 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-
 type Weather = {
   temperature: string | number;
   condition: string;
   description: string;
   wind_speed: string | number;
   city: string;
+};
+
+type TransportItem = {
+  title: string;
+  severity: string;
+  mode: string;
+  area: string;
+};
+
+type Transport = {
+  status: string;
+  minor_delays: number;
+  major_disruptions: number;
+  items: TransportItem[];
+  updated_at: string;
 };
 
 const metricCards = [
@@ -29,9 +43,9 @@ const metricCards = [
   },
   {
     title: "Transit Network",
-    value: "Normal",
+    value: "Loading",
     unit: "",
-    change: "2 minor delays",
+    change: "Fetching network status",
     icon: TrainFront,
   },
   {
@@ -50,10 +64,10 @@ const metricCards = [
   },
 ];
 
-const alerts = [
-  { text: "Minor tram disruption impacting CBD northbound flow", level: "warning" },
-  { text: "Event traffic building near Rod Laver Arena precinct", level: "info" },
-  { text: "Weather conditions may suppress bay-side foot traffic", level: "low" },
+const fallbackAlerts = [
+  { title: "Minor tram disruption impacting CBD northbound flow", severity: "warning", mode: "tram", area: "CBD" },
+  { title: "Event traffic building near Rod Laver Arena precinct", severity: "info", mode: "event", area: "Melbourne Park" },
+  { title: "Weather conditions may suppress bay-side foot traffic", severity: "low", mode: "weather", area: "St Kilda" },
 ];
 
 const sidebarItems = ["Overview", "Transit", "Weather", "Events", "Forecasting"];
@@ -65,41 +79,59 @@ const fadeUp = {
 
 export default function Home() {
   const [time, setTime] = useState<string | null>(null);
-const [weather, setWeather] = useState<Weather | null>(null);
-const [weatherLoading, setWeatherLoading] = useState(true);
-const [weatherError, setWeatherError] = useState(false);
+  const [weather, setWeather] = useState<Weather | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
+  const [weatherError, setWeatherError] = useState(false);
+  const [transport, setTransport] = useState<Transport | null>(null);
 
-useEffect(() => {
-  const fetchWeather = async () => {
-    try {
-      setWeatherError(false);
-
-      const res = await fetch("http://127.0.0.1:8000/weather");
-
-      if (!res.ok) {
-        throw new Error("Weather request failed");
+  useEffect(() => {
+    const fetchTransport = async () => {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/transport");
+        const data = await res.json();
+        setTransport(data);
+      } catch (err) {
+        console.error("Failed to fetch transport:", err);
       }
+    };
 
-      const data = await res.json();
-      setWeather(data);
-    } catch (err) {
-      console.error("Failed to fetch weather:", err);
-      setWeatherError(true);
-    } finally {
-      setWeatherLoading(false);
-    }
-  };
+    fetchTransport();
+    const interval = setInterval(fetchTransport, 60_000);
 
-  fetchWeather();
+    return () => clearInterval(interval);
+  }, []);
 
-  const interval = setInterval(fetchWeather, 60_000);
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        setWeatherError(false);
 
-  return () => clearInterval(interval);
-}, []);
+        const res = await fetch("http://127.0.0.1:8000/weather");
+
+        if (!res.ok) {
+          throw new Error("Weather request failed");
+        }
+
+        const data = await res.json();
+        setWeather(data);
+      } catch (err) {
+        console.error("Failed to fetch weather:", err);
+        setWeatherError(true);
+      } finally {
+        setWeatherLoading(false);
+      }
+    };
+
+    fetchWeather();
+    const interval = setInterval(fetchWeather, 60_000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
+
       setTime(
         now.toLocaleString(undefined, {
           weekday: "short",
@@ -117,6 +149,8 @@ useEffect(() => {
 
     return () => clearInterval(interval);
   }, []);
+
+  const alertItems = transport?.items?.length ? transport.items : fallbackAlerts;
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
@@ -228,34 +262,43 @@ useEffect(() => {
             {metricCards.map((card, index) => {
               const Icon = card.icon;
               const isWeather = card.title === "Weather";
+              const isTransport = card.title === "Transit Network";
 
-            const value = isWeather
-              ? weatherLoading
-                ? "--°"
-                : weatherError
-                ? "Offline"
-                : weather
-                ? `${Math.round(Number(weather.temperature))}°`
-                : "--°"
-              : card.value;
+              const value = isWeather
+                ? weatherLoading
+                  ? "--°"
+                  : weatherError
+                    ? "Offline"
+                    : weather
+                      ? `${Math.round(Number(weather.temperature))}°`
+                      : "--°"
+                : isTransport
+                  ? transport?.status ?? "Loading"
+                  : card.value;
 
-            const unit = isWeather
-              ? weatherLoading
-                ? "Loading"
-                : weatherError
-                ? "Unavailable"
-                : weather?.condition ?? "Unknown"
-              : card.unit;
+              const unit = isWeather
+                ? weatherLoading
+                  ? "Loading"
+                  : weatherError
+                    ? "Unavailable"
+                    : weather?.condition ?? "Unknown"
+                : isTransport
+                  ? ""
+                  : card.unit;
 
-            const change = isWeather
-              ? weatherLoading
-                ? "Fetching live weather"
-                : weatherError
-                ? "Backend connection issue"
-                : weather
-                ? `Wind · ${weather.wind_speed} km/h`
-                : "No data"
-              : card.change;
+              const change = isWeather
+                ? weatherLoading
+                  ? "Fetching live weather"
+                  : weatherError
+                    ? "Backend connection issue"
+                    : weather
+                      ? `Wind · ${weather.wind_speed} km/h`
+                      : "No data"
+                : isTransport
+                  ? transport
+                    ? `${transport.minor_delays} minor delays · ${transport.major_disruptions} major`
+                    : "Fetching network status"
+                  : card.change;
 
               return (
                 <motion.div
@@ -271,13 +314,7 @@ useEffect(() => {
                       {card.title}
                     </p>
 
-                    <div
-                      className={`rounded-xl border bg-zinc-950 p-2 ${
-                        isWeather && !weatherError
-                          ? "border-cyan-500/20 text-cyan-400"
-                          : "border-zinc-800 text-cyan-400"
-                      }`}
-                    >
+                    <div className="rounded-xl border border-cyan-500/20 bg-zinc-950 p-2 text-cyan-400">
                       <Icon size={16} />
                     </div>
                   </div>
@@ -331,29 +368,37 @@ useEffect(() => {
                 <div>
                   <p className="text-lg font-medium">Operational Alerts</p>
                   <p className="mt-1 text-sm text-zinc-400">
-                    Exceptions, surges, and notable changes
+                    Transport exceptions, surges, and notable city changes
                   </p>
                 </div>
                 <TriangleAlert className="text-amber-400" size={18} />
               </div>
 
               <div className="space-y-4">
-                {alerts.map((alert, index) => (
+                {alertItems.map((alert, index) => (
                   <motion.div
-                    key={alert.text}
+                    key={`${alert.title}-${index}`}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.4 + index * 0.05 }}
                     className={`rounded-2xl border p-4 ${
-                      alert.level === "warning"
+                      alert.severity === "warning" || alert.severity === "minor"
                         ? "border-amber-500/20 bg-amber-500/5"
-                        : alert.level === "info"
-                        ? "border-cyan-500/20 bg-cyan-500/5"
-                        : "border-zinc-800 bg-zinc-950"
+                        : alert.severity === "info"
+                          ? "border-cyan-500/20 bg-cyan-500/5"
+                          : "border-zinc-800 bg-zinc-950"
                     }`}
                   >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs uppercase tracking-wider text-zinc-500">
+                        {alert.mode} · {alert.area}
+                      </span>
+                      <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
+                        {alert.severity}
+                      </span>
+                    </div>
                     <p className="text-sm leading-6 text-zinc-300">
-                      {alert.text}
+                      {alert.title}
                     </p>
                   </motion.div>
                 ))}

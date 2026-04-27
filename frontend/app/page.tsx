@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
+
 type Weather = {
   temperature: string | number;
   condition: string;
@@ -64,21 +65,37 @@ const fadeUp = {
 
 export default function Home() {
   const [time, setTime] = useState<string | null>(null);
-  const [weather, setWeather] = useState<Weather | null>(null);
+const [weather, setWeather] = useState<Weather | null>(null);
+const [weatherLoading, setWeatherLoading] = useState(true);
+const [weatherError, setWeatherError] = useState(false);
 
-  useEffect(() => {
-    const fetchWeather = async () => {
-      try {
-        const res = await fetch("http://127.0.0.1:8000/weather");
-        const data = await res.json();
-        setWeather(data);
-      } catch (err) {
-        console.error("Failed to fetch weather:", err);
+useEffect(() => {
+  const fetchWeather = async () => {
+    try {
+      setWeatherError(false);
+
+      const res = await fetch("http://127.0.0.1:8000/weather");
+
+      if (!res.ok) {
+        throw new Error("Weather request failed");
       }
-    };
 
-    fetchWeather();
-  }, []);
+      const data = await res.json();
+      setWeather(data);
+    } catch (err) {
+      console.error("Failed to fetch weather:", err);
+      setWeatherError(true);
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
+
+  fetchWeather();
+
+  const interval = setInterval(fetchWeather, 60_000);
+
+  return () => clearInterval(interval);
+}, []);
 
   useEffect(() => {
     const updateTime = () => {
@@ -212,21 +229,33 @@ export default function Home() {
               const Icon = card.icon;
               const isWeather = card.title === "Weather";
 
-              const value = isWeather
-                ? weather
-                  ? `${Math.round(Number(weather.temperature))}°`
-                  : "--°"
-                : card.value;
+            const value = isWeather
+              ? weatherLoading
+                ? "--°"
+                : weatherError
+                ? "Offline"
+                : weather
+                ? `${Math.round(Number(weather.temperature))}°`
+                : "--°"
+              : card.value;
 
-              const unit = isWeather
-                ? weather?.condition ?? "Loading"
-                : card.unit;
+            const unit = isWeather
+              ? weatherLoading
+                ? "Loading"
+                : weatherError
+                ? "Unavailable"
+                : weather?.condition ?? "Unknown"
+              : card.unit;
 
-              const change = isWeather
-                ? weather
-                  ? `Wind ${weather.wind_speed} km/h`
-                  : "Fetching live data"
-                : card.change;
+            const change = isWeather
+              ? weatherLoading
+                ? "Fetching live weather"
+                : weatherError
+                ? "Backend connection issue"
+                : weather
+                ? `Wind · ${weather.wind_speed} km/h`
+                : "No data"
+              : card.change;
 
               return (
                 <motion.div
@@ -242,7 +271,13 @@ export default function Home() {
                       {card.title}
                     </p>
 
-                    <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-2 text-cyan-400">
+                    <div
+                      className={`rounded-xl border bg-zinc-950 p-2 ${
+                        isWeather && !weatherError
+                          ? "border-cyan-500/20 text-cyan-400"
+                          : "border-zinc-800 text-cyan-400"
+                      }`}
+                    >
                       <Icon size={16} />
                     </div>
                   </div>

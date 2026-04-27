@@ -39,6 +39,23 @@ type Transport = {
   updated_at: string;
 };
 
+type EventItem = {
+  title: string;
+  venue: string;
+  area: string;
+  category: string;
+  impact: string;
+};
+
+type Events = {
+  status: string;
+  event_count: number;
+  high_impact: number;
+  medium_impact: number;
+  items: EventItem[];
+  updated_at: string;
+};
+
 const sidebarItems = ["Overview", "Transit", "Weather", "Events", "Forecasting"];
 
 const fallbackAlerts: TransportItem[] = [
@@ -77,6 +94,9 @@ export default function Home() {
 
   const [transport, setTransport] = useState<Transport | null>(null);
   const [transportError, setTransportError] = useState(false);
+
+  const [events, setEvents] = useState<Events | null>(null);
+  const [eventsError, setEventsError] = useState(false);
 
   useEffect(() => {
     const markRefresh = () => {
@@ -129,15 +149,37 @@ export default function Home() {
       }
     };
 
+    const fetchEvents = async () => {
+      try {
+        setEventsError(false);
+
+        const res = await fetch(`${API_BASE_URL}/events`);
+
+        if (!res.ok) {
+          throw new Error("Events request failed");
+        }
+
+        const data = await res.json();
+        setEvents(data);
+        markRefresh();
+      } catch (err) {
+        console.error("Failed to fetch events:", err);
+        setEventsError(true);
+      }
+    };
+
     fetchWeather();
     fetchTransport();
+    fetchEvents();
 
     const weatherInterval = setInterval(fetchWeather, POLL_INTERVAL_MS);
     const transportInterval = setInterval(fetchTransport, POLL_INTERVAL_MS);
+    const eventsInterval = setInterval(fetchEvents, POLL_INTERVAL_MS);
 
     return () => {
       clearInterval(weatherInterval);
       clearInterval(transportInterval);
+      clearInterval(eventsInterval);
     };
   }, []);
 
@@ -211,9 +253,13 @@ export default function Home() {
     },
     {
       title: "Event Load",
-      value: "High",
+      value: eventsError ? "Offline" : events?.status ?? "Loading",
       unit: "",
-      change: "5 major events detected",
+      change: eventsError
+        ? "Events feed unavailable"
+        : events
+          ? `${events.event_count} active events · ${events.high_impact} high impact`
+          : "Scanning event activity",
       icon: MapPinned,
       accent: "violet",
     },
@@ -321,6 +367,13 @@ export default function Home() {
                       : transport
                         ? "Active"
                         : "Syncing"}
+                  </span>
+                </div>
+
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="text-zinc-500">Events Feed</span>
+                  <span className="text-zinc-300">
+                    {eventsError ? "Offline" : events ? "Active" : "Syncing"}
                   </span>
                 </div>
 
@@ -569,9 +622,13 @@ export default function Home() {
                 </div>
 
                 <div className="rounded-3xl border border-violet-400/20 bg-violet-400/5 p-4">
-                  <p className="text-sm text-zinc-500">Southbank</p>
+                  <p className="text-sm text-zinc-500">
+                    {events?.items?.[0]?.area ?? "Melbourne"}
+                  </p>
                   <p className="mt-1 text-lg font-medium text-white">
-                    Event-driven activity expected through evening peak
+                    {events?.items?.[0]
+                      ? `${events.items[0].title} driving ${events.items[0].impact} event activity`
+                      : "Event-driven activity expected through evening peak"}
                   </p>
                 </div>
               </div>

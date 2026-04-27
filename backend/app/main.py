@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.services_weather_imm import get_weather
 from app.services_transport_imm import get_transport_status
+from app.services_events_imm import get_event_status
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 load_dotenv()
@@ -30,3 +31,7 @@ async def weather():
 @app.get("/transport")
 async def transport():
     return await get_transport_status()
+
+@app.get("/events")
+async def events():
+    return await get_event_status()

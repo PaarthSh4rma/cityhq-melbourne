@@ -63,3 +63,12 @@ Subsequent phases record implementation and actual validation below.
 - Browser tests use dedicated ports 3105/8105 after detecting unrelated applications on 3000/8000; those applications were not stopped or modified.
 - Initial axe WCAG A/AA scan passed. Browser testing found MapLibre 6 needs explicit worker URL; fixed using upstream installation guidance. Navigation numbering is now hidden from accessible names.
 - Next upgraded from 16.2.2 to 16.4.0 following npm audit. Five high development-only lint dependency advisories remain; incompatible forced downgrade declined.
+- Extended validation: 20 backend tests pass; 5 browser tests pass, including forecast controls, session chat persistence and map marker/layer controls against test fixtures. Desktop/mobile screenshots visually inspected; no horizontal mobile overflow.
+- Live wttr verification returned 21°C and 3 daily outlook entries. This response omitted dated observation time; adapter now preserves conditions with null observed_at/age and explicit limitation. Both dated and undated variants tested.
+- Production npm audit: zero reported vulnerabilities. Five remaining development advisories stem from braces → micromatch → fast-glob → Next ESLint tooling.
+- Query changes now clear the displayed old result while loading (e.g. a selected Ridge forecast cannot temporarily show persistence predictions).
+
+## K — Deployment and portfolio
+- Backend/frontend env examples, non-root Dockerfiles, persistent-volume Compose, health checks and GitHub Actions added.
+- README, architecture, API, source/scoring and ML methodology documents include concrete limitations and actual evaluation artifact.
+- Docker credential helper stalled on public-image metadata. Retried with an isolated anonymous Docker config, leaving user credentials untouched.

@@ -39,8 +39,20 @@ Each provider request has an 8-second timeout, at most three attempts for networ
 
 Frontend requests time out at 30s, abort on unmount, never overlap within a poller, back off on failures and pause new polls while hidden. Manual refresh re-queries CityHQ without bypassing server TTLs. The Melbourne clock is isolated from source timestamps. API errors override the sidebar status; /health describes API/storage readiness, not feed health.
 
-The Operator is deliberately deterministic, with no shell, file or external-action tools. Forecast artifact loading accepts only the server-configured trusted path; never load untrusted joblib files. This local portfolio application has no authentication or rate-limiting gateway: add those before an internet-facing production release.
+The Operator is deliberately deterministic, with no shell, file or external-action tools. Forecast artifact loading accepts only the server-configured trusted path; never load untrusted joblib files. The Operator has process-local rate and concurrency bounds; this local portfolio application has no authentication or shared rate-limiting gateway. Add those before an internet-facing production release.
 
 ## Trade-offs
 
 JSON payloads preserve provider flexibility while the indexed timestamps enable local histories. SQLite and one worker make zero-cost setup simple. Hash-based navigation provides shareable six-view state without duplicating polling lifecycles. The map is code-split; charts and animations disable unnecessary transitions. System fonts avoid remote font downloads during builds. Webpack mode avoids a sandbox-specific Turbopack process/port restriction.
+
+## Overdrive implementation boundaries
+
+`dashboard.tsx` retains six hash-addressable views and owns the validated action executor, geographic focus and layer state. `command-centre.tsx` composes the map, selected-record context, captured-history workspace and collapsible analytics. `city-map.tsx` loads MapLibre lazily, uses OpenFreeMap vector geography, resizes with its container and removes its WebGL resources on unmount. `geography.ts` is the fixed, sourced camera catalogue; approximate envelopes are separate from provider-coordinate markers.
+
+`workspace-controls.tsx` supplies a native modal command dialog with focus restoration and an optional first-session briefing driven by actual source states. `operator.tsx` holds at most 30 messages in memory and reacts to actual pending/error/completion states. API actions are treated as unknown input until exact-key runtime validation succeeds in `lib/commands.ts`; backend Pydantic schemas independently enforce the same allowlist. External titles are plain React text / DOM text content, never instructions or HTML.
+
+`lib/api.ts` shares simultaneous GETs by path. Each subscriber can abort independently; the upstream request aborts only after its last subscriber leaves. POST requests are never deduplicated. `use-poll.ts` keys results and errors to the current query, retains the last successful response for that query, pauses while hidden, backs off and cancels on cleanup. The browser refresh cadence and server source TTL are distinct.
+
+`timeline.py` selects the latest retained source capture at or before a requested UTC timestamp. No future capture or current-data fallback enters replay. Expired captures remain inspectable but are excluded from the recomputed activity proxy. Overview metrics, map and selected-record list share this captured context; other workspaces and Operator queries remain current, as the banner states. Comparison uses two equal periods anchored to now, grouped by provenance; it does not assert a causal change.
+
+Scenario inputs are bounded component contributions. Local preview gives immediate deterministic feedback; `/scenario` independently validates and recalculates against current source context. Neither writes observations. Rate limits are per process/client address (30 Operator requests/minute, four concurrent queries, bounded client map), with queue and total-query timeouts. Reverse-proxy deployments need a shared gateway and deliberate client-address policy.

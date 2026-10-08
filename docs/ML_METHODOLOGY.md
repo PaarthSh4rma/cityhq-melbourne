@@ -36,3 +36,9 @@ Synthetic inference continues the original research timeline. It must not be dis
 ## Next research steps
 
 Collect a real continuous weather series, retain provider observation timestamps, use expanding-window backtesting across seasons, compare with a provider forecast and seasonal persistence, evaluate drift, then calibrate intervals on separate data. Consider a licensed public historical dataset through a separately reviewed import pipeline. Never mix synthetic and observed evaluation claims.
+
+## Research workspace additions
+
+The Forecasting Lab now surfaces mode, model version, target, seed, dataset hash, complete row count and exact split periods alongside measured baseline/Ridge/forest results. The regenerated evaluation artifact adds a 12-bin histogram over all selected-model test residuals and a chronological error sample (approximately 72 points). Expand the diagnostics for exact bin boundaries/counts. Bins and samples are derived from actual held-out predictions; no hardcoded decorative distributions are used.
+
+The error distribution always describes the validation-selected model; choosing another inference model does not relabel those diagnostics. Feature importances remain forest-specific. Synthetic residuals are not uncertainty bounds for current Melbourne weather. Real-data training capability exists, but there is not yet enough verified continuous dated live history to report a real-world evaluation. wttr's currently undated observations are correctly excluded.

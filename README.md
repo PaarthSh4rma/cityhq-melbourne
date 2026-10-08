@@ -1,6 +1,8 @@
 # CITYHQ · Melbourne
 
-**City signals. Explainable analytics. Evidence before inference.**
+**A Melbourne command centre. Real geography. Explainable city signals.**
+
+[Overdrive delivery report](docs/OVERDRIVE_DELIVERY.md) · [Operator commands](docs/OPERATOR.md) · [Geographic sources](docs/GEOGRAPHY.md)
 
 CITYHQ is a local-first urban intelligence platform that brings Melbourne weather, service notices and event listings into one operational workspace. It demonstrates full-stack engineering, data provenance, time-series persistence and reproducible ML while making the boundary between real observations, demo fixtures and predictions explicit.
 
@@ -11,9 +13,11 @@ CITYHQ is a local-first urban intelligence platform that brings Melbourne weathe
 - SQLite historical observations, Alembic migrations, hourly aggregates, retention and CSV export.
 - Explainable activity heuristic with component contributions, missing-input coverage and freshness.
 - Reproducible next-hour temperature experiment: persistence baseline, Ridge and random forest; chronological evaluation and persisted inference.
-- CITYHQ Operator: deterministic, grounded questions about internal signals with references and navigation. No paid LLM required.
-- Interactive MapLibre Melbourne map with layer controls and provider-coordinate markers; no fabricated locations.
-- Typed polling with cancellation, visibility awareness, bounded retries and honest error states.
+- CITYHQ Operator: deterministic, grounded internal queries plus validated camera, layer, navigation and time-range actions. Session transcript, supporting data, reset and real processing states. No paid LLM required.
+- Map-first command centre: tilted MapLibre vector geography, dataset-supported 3D buildings, seven verified camera presets, selectable signals, layer controls and provider-coordinate markers.
+- Stored-capture time machine, provenance-grouped period comparisons, gap-aware charts and a separate deterministic scenario lab.
+- Skippable first-session briefing, keyboard command palette, collapsible instrumentation, reduced effects and responsive navigation.
+- Typed polling with shared GET deduplication, independent subscriber cancellation, visibility awareness, bounded retries and honest error states.
 - Backend/component/browser tests, CI, Dockerfiles and a persistent-volume Compose configuration.
 
 This is an urban **signal** platform. Notice counts are not passenger congestion; event listings do not establish crowd size. The activity index is a heuristic, not a trained prediction or measured foot traffic.
@@ -104,7 +108,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-E2E tests launch isolated demo servers on 3105/8105; no reuse of unrelated running applications. They intercept public map tiles to avoid automated load on OSM. The production build uses webpack because Turbopack process binding was restricted in the implementation environment.
+E2E tests launch isolated demo servers on 3115/8115 and use `.next-e2e` plus a temporary SQLite database; they do not reuse the production preview on 3105/8105. They intercept public map tiles with an explicitly synthetic empty style. Real vector geography was checked separately in the browser. The production build uses webpack because Turbopack process binding was restricted in the implementation environment.
 
 ## Containers and deployment review
 
@@ -120,7 +124,9 @@ No cloud services have been provisioned and no deployment has been made. Before 
 
 ## Screenshots
 
-Run in explicitly selected demo/live mode, open all six views, and capture a 1440×1000 desktop and 390×844 mobile viewport. Keep provenance badges and attribution visible. For a compelling demo, train the synthetic model first; show the sparse historical empty state honestly. Do not present fixture screenshots as live Melbourne activity.
+All six views were captured at CSS viewport widths 1920, 1440, 768 and 390. Additional Operator, time-machine and scenario captures are indexed in the [visual verification record](docs/OVERDRIVE_DELIVERY.md). Weather used wttr live-origin retrieval; transit and events remained explicit demos. Screenshots record a moment in time.
+
+![CITYHQ Overdrive command centre](docs/screenshots/overdrive-overview-1440.jpg)
 
 ## Known limitations and roadmap
 
@@ -133,6 +139,4 @@ Run in explicitly selected demo/live mode, open all six views, and capture a 144
 
 MIT licence. Provider data and map tiles remain subject to their own terms.
 
-Verified local preview (real base map, demo transit notices):
-
-![CITYHQ Melbourne map and operational notices](docs/screenshots/live-preview.jpg)
+The review preview uses [frontend port 3105](http://127.0.0.1:3105) and [API port 8105](http://127.0.0.1:8105/docs). See the delivery report for the exact commands; the default setup above still uses 3000/8000.

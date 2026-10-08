@@ -1,0 +1,91 @@
+{
+  "timestamp": "2026-10-08T13:03:10.260554+00:00",
+  "environment": "macOS-26.5.1-arm64-arm-64bit",
+  "scope": "Warm sequential localhost HTTP checks; one process; existing small SQLite history; not a public-load or Core Web Vitals benchmark.",
+  "api": {
+    "/api/v1/weather": {
+      "samples": 20,
+      "p50_ms": 0.56,
+      "p95_ms": 1.1
+    },
+    "/api/v1/history?hours=24": {
+      "samples": 20,
+      "p50_ms": 5.07,
+      "p95_ms": 19.87
+    },
+    "/api/v1/history/compare?hours=6": {
+      "samples": 20,
+      "p50_ms": 9.57,
+      "p95_ms": 14.53
+    },
+    "/api/v1/forecast?model=selected&horizon=1": {
+      "samples": 20,
+      "p50_ms": 10.1,
+      "p95_ms": 23.67
+    },
+    "/api/v1/diagnostics": {
+      "samples": 20,
+      "p50_ms": 2.99,
+      "p95_ms": 4.47
+    },
+    "POST /api/v1/operator": {
+      "samples": 10,
+      "p50_ms": 1.27,
+      "p95_ms": 2.98
+    }
+  },
+  "source_statuses": {
+    "weather": {
+      "status": "cached",
+      "origin": "live",
+      "observation_dated": false
+    },
+    "transport": {
+      "status": "demo",
+      "origin": "demo",
+      "observation_dated": true
+    },
+    "events": {
+      "status": "demo",
+      "origin": "demo",
+      "observation_dated": true
+    }
+  },
+  "frontend": {
+    "checked_at": "2026-10-08T13:10:20.459043+00:00",
+    "production_html_roundtrip": {
+      "samples": 20,
+      "p50_ms": 2.0,
+      "p95_ms": 6.88
+    },
+    "emitted_js": {
+      "files": 10,
+      "raw_bytes": 2334909,
+      "gzip_bytes": 672917,
+      "largest_chunks": [
+        {
+          "file": "ca4dcb09.79f5de2425e644f3.js",
+          "raw_bytes": 1047169,
+          "gzip_bytes": 281102
+        },
+        {
+          "file": "396-0f1b179742167c47.js",
+          "raw_bytes": 386731,
+          "gzip_bytes": 114882
+        },
+        {
+          "file": "794-b48d401992e2c1c0.js",
+          "raw_bytes": 242988,
+          "gzip_bytes": 66840
+        },
+        {
+          "file": "4bd1b696-7a3b7f6429414305.js",
+          "raw_bytes": 203726,
+          "gzip_bytes": 63945
+        }
+      ],
+      "scope": "All emitted JavaScript chunks including lazy chunks; gzip estimate, not initial route transfer size."
+    },
+    "limits": "No browser FPS, heap soak, Lighthouse or field Core Web Vitals benchmark claimed."
+  }
+}

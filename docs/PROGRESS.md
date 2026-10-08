@@ -76,3 +76,30 @@ Subsequent phases record implementation and actual validation below.
 - Final totals: 20 backend tests, 6 frontend tests and 5 browser tests passed; lint, formatting, TypeScript and production build passed.
 - Both Docker images built successfully. Disposable backend container passed migrations, storage health, synthetic training and inference; standalone frontend container returned HTTP 200 with CITYHQ markup.
 - Final delivery documentation and real-map screenshot recorded. No deployment or push performed.
+
+## L — Overdrive contracts, timeline and research data
+
+- Audited the existing completed application, reused the six-view architecture and preserved existing SQLite data and environment files.
+- Added strict Operator actions, actual internal tool calls, bounded requests and source-grounded reports; deterministic routing remains credential-free.
+- Added captured historical queries, provenance-grouped comparison and non-persisting scenario API.
+- Regenerated the seed-42 synthetic evaluation with actual residual bins and chronology; evaluation metrics remain unchanged.
+- Local commit: `b245a7b`.
+
+## M — Map-first operating surface
+
+- Original dark instrumented visual system; large tilted vector map, dataset-supported buildings, sourced camera catalogue, geographic envelopes and contextual signal selection.
+- Operator actions execute validated navigation, camera, layers and range changes. Added skippable real-status briefing, native command dialog, reduced effects and responsive layouts.
+- Historical Overview shares stored context across cards/map/list; gaps remain explicit. Scenario sliders and independent server validation stay separate from observed records.
+- Forecast research metadata/residual diagnostics, gap-aware history and shared request deduplication added.
+- Fixed a visible 33.15 rounding disagreement between Python and JavaScript; v1.1 uses decimal half-up scoring consistently.
+- Local commit: `cdda3bf`.
+
+## N — Final acceptance and dependency review
+
+- Backend: 25 tests, Ruff, formatting and pip dependency check pass. Frontend: 9 unit tests, lint, formatting and TypeScript pass. Production build succeeds; local standalone HTTP 200 verified.
+- Eight browser tests pass, including map-provider failure/retry, validated actions, stored replay, scenario reset, dialog focus restoration, reduced effects and all six views at 1920/1440/768/390 widths. Overview axe WCAG A/AA scan reports zero violations; this is not a full accessibility certification.
+- Real OpenFreeMap geometry/buildings and wttr retrieval inspected separately from automated tile fixtures. All six views captured at all four widths; Operator/scenario/timeline additional captures recorded.
+- Warm local API measurements and emitted bundle inventory recorded, with no unmeasured FPS/Core Web Vitals claim.
+- OSV identified AnyIO/idna/Starlette advisories; upgraded to 4.15.1/3.20/1.7.0 plus required typing_extensions 4.16.0. Repeat OSV scan: zero findings in 38 pins. One upstream TestClient httpx deprecation remains.
+- npm production audit: zero. Full audit: five high development lint-chain entries from one unresolved braces advisory; no incompatible forced Next lint downgrade applied.
+- Architecture/API/provenance/ML/deployment docs, Operator catalogue, geography references and the full Overdrive delivery report updated. No push or deployment.

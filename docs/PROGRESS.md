@@ -57,7 +57,7 @@ Subsequent phases record implementation and actual validation below.
 - Typed visibility-aware polling, abort/cleanup, no overlap, backoff and last-success retention.
 - Filters, details, score explanations, historical range/signal controls, forecast models/horizons and CSV export.
 
-## J — Validation in progress
+## J — Validation complete
 - Backend: 13 tests pass; Ruff checks/format pass. Fixtures cover source contracts, unavailable/stale cache behaviour, scoring, causal features, chronology, reproducibility, inference and Operator routes.
 - Frontend: lint, TypeScript and 5 component/polling tests pass. Production webpack build passes; Turbopack failed on environment process binding.
 - Browser tests use dedicated ports 3105/8105 after detecting unrelated applications on 3000/8000; those applications were not stopped or modified.
@@ -72,3 +72,7 @@ Subsequent phases record implementation and actual validation below.
 - Backend/frontend env examples, non-root Dockerfiles, persistent-volume Compose, health checks and GitHub Actions added.
 - README, architecture, API, source/scoring and ML methodology documents include concrete limitations and actual evaluation artifact.
 - Docker credential helper stalled on public-image metadata. Retried with an isolated anonymous Docker config, leaving user credentials untouched.
+
+- Final totals: 20 backend tests, 6 frontend tests and 5 browser tests passed; lint, formatting, TypeScript and production build passed.
+- Both Docker images built successfully. Disposable backend container passed migrations, storage health, synthetic training and inference; standalone frontend container returned HTTP 200 with CITYHQ markup.
+- Final delivery documentation and real-map screenshot recorded. No deployment or push performed.

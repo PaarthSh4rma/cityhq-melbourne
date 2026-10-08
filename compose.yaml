@@ -1,0 +1,26 @@
+services:
+  backend:
+    build: ./backend
+    ports: ["8000:8000"]
+    environment:
+      WEATHER_ADAPTER: ${WEATHER_ADAPTER:-demo}
+      TRANSPORT_ADAPTER: ${TRANSPORT_ADAPTER:-demo}
+      EVENTS_ADAPTER: ${EVENTS_ADAPTER:-demo}
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
+      PTV_DEVID: ${PTV_DEVID:-}
+      PTV_API_KEY: ${PTV_API_KEY:-}
+      TICKETMASTER_API_KEY: ${TICKETMASTER_API_KEY:-}
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+    volumes: ["cityhq-data:/data"]
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_MAP_STYLE: ${NEXT_PUBLIC_MAP_STYLE:-}
+    ports: ["3000:3000"]
+    depends_on:
+      backend:
+        condition: service_healthy
+volumes:
+  cityhq-data:

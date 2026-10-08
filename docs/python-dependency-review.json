@@ -1,0 +1,12 @@
+{
+  "source": "https://api.osv.dev/v1/querybatch",
+  "checked_at": "2026-10-08T13:07:32.198159+00:00",
+  "checked_packages": 38,
+  "patched": {
+    "anyio": "4.13.0 \u2192 4.15.1",
+    "idna": "3.13 \u2192 3.20",
+    "starlette": "1.0.0 \u2192 1.7.0",
+    "typing_extensions": "4.15.0 \u2192 4.16.0 (AnyIO dependency)"
+  },
+  "findings": []
+}

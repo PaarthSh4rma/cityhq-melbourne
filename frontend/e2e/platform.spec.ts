@@ -147,6 +147,20 @@ test("map controls and provider-coordinate marker", async ({ page }) => {
   await expect(page.getByText(/Some map tiles could not load/)).toHaveCount(0);
 });
 
+test("map provider failure is visible and retry recovers", async ({ page }) => {
+  const failTiles = (route: import("@playwright/test").Route) => route.abort();
+  await page.route("https://tiles.openfreemap.org/**", failTiles);
+  await page.goto("/");
+  await expect(page.getByText(/Some map tiles could not load/)).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Signals worth inspecting" }),
+  ).toBeVisible();
+  await page.unroute("https://tiles.openfreemap.org/**", failTiles);
+  await page.getByRole("button", { name: "Retry map", exact: true }).click();
+  await expect(page.getByText(/Some map tiles could not load/)).toHaveCount(0);
+  await expect(page.locator(".maplibregl-canvas")).toBeVisible();
+});
+
 test("Operator map actions, historical replay, comparison and scenario reset", async ({
   page,
 }) => {

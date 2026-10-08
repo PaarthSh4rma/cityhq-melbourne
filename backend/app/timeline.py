@@ -59,6 +59,7 @@ def snapshot(at):
         captures=captures,
         gaps=gaps,
         limitations=[
+            "Historical index is recomputed from captured inputs using the reported methodology version, not the original stored score.",
             "Latest actual capture at or before the selected time; no interpolation or reconstruction.",
             "Capture age and source observation age differ. Expired captures are excluded from the score.",
             "Demo captures retain demo provenance. Unlocated records cannot be mapped precisely.",

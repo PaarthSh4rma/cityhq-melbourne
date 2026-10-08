@@ -84,3 +84,35 @@ async def test_scenario_validation_and_no_activity_persistence():
         assert response.json()["after"] in (85, 100)
         assert "not a real-world" in response.json()["label"]
     assert db.history() == []
+
+
+@pytest.mark.asyncio
+async def test_operator_limits_and_strict_action_schema():
+    from pydantic import ValidationError
+
+    from app.api import operator_clients
+    from app.schemas import OperatorAction
+
+    with pytest.raises(ValidationError):
+        OperatorAction(type="focus_map_location", location="cbd", hours=6)
+    operator_clients.clear()
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            for _ in range(30):
+                response = await client.post("/api/v1/operator", json={"question": "Focus CBD"})
+                assert response.status_code == 200
+            assert (
+                await client.post("/api/v1/operator", json={"question": "Focus CBD"})
+            ).status_code == 429
+            assert (
+                await client.post("/api/v1/operator", json={"question": "x" * 1001})
+            ).status_code == 422
+    finally:
+        operator_clients.clear()
+
+
+def test_scenario_and_activity_share_explicit_decimal_rounding():
+    from app.analytics import total_score
+
+    assert total_score([5, 12, 7.5, 8.65]) == 33.2
+    assert total_score([5, 12, 7.5, 8.64]) == 33.1

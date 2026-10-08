@@ -38,7 +38,7 @@ export type Transit = {
   status: string;
   disruption_count: number;
   minor_delays: number;
-  major_disruptions: number;
+  major_disruptions: number | null;
   items: Item[];
 };
 export type Events = { metadata: Meta; event_count: number; items: Item[] };
@@ -63,8 +63,8 @@ export type History = {
     timestamp: string;
     score: number | null;
     temperature: number | null;
-    disruptions: number;
-    events: number;
+    disruptions: number | null;
+    events: number | null;
     provenance: Record<string, Meta>;
   }[];
   aggregation: string;
@@ -83,6 +83,9 @@ export type Forecast = {
     version: string;
     target: string;
     selected_model: string;
+    dataset_sha256?: string;
+    seed?: number;
+    selection?: string;
     rows: number;
     metrics: Record<
       string,
@@ -93,7 +96,14 @@ export type Forecast = {
     >;
     feature_importance: Record<string, number>;
     importance_note: string;
-    residuals: { mean: number; std: number; p05: number; p95: number };
+    residuals: {
+      mean: number;
+      std: number;
+      p05: number;
+      p95: number;
+      histogram?: { low: number; high: number; count: number }[];
+      timeline?: { timestamp: string; error: number }[];
+    };
     limitations: string[];
     splits: Record<string, { rows: number; start: string; end: string }>;
   };
@@ -114,6 +124,33 @@ export type Reply = {
   navigation: string;
   references: Meta[];
   tool_calls: { tool: string }[];
+  actions?: unknown[];
+  supporting_data?: Record<string, unknown>;
 };
 export type View =
   "overview" | "transit" | "weather" | "events" | "forecasting" | "diagnostics";
+
+export type Timeline = {
+  at: string;
+  signals: { weather: Weather; transport: Transit; events: Events };
+  activity: Activity;
+  captures: Record<string, { timestamp: string; age_seconds: number } | null>;
+  gaps: string[];
+  limitations: string[];
+};
+export type Comparison = {
+  previous: Period;
+  current: Period;
+  limitations: string[];
+};
+export type Period = {
+  start: string;
+  end: string;
+  stored_hours: number;
+  expected_hours: number;
+  groups: {
+    provenance: string;
+    usable_hours: number;
+    mean_score: number | null;
+  }[];
+};

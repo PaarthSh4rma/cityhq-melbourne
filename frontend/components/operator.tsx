@@ -1,24 +1,47 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Sparkles, X } from "lucide-react";
-import { request } from "@/lib/api";
+import { melbourneTime, request } from "@/lib/api";
+import { validateAction, VIEWS, type Action } from "@/lib/commands";
 import type { Reply, View } from "@/lib/types";
+export function OperatorCore({ state = "standby" }: { state?: string }) {
+  return (
+    <div
+      className={`operator-core ${state === "querying" ? "processing" : ""}`}
+      aria-hidden="true"
+    >
+      <div className="core-orbit orbit-a" />
+      <div className="core-orbit orbit-b" />
+      <div className="core-orbit orbit-c" />
+      <div className="core-nucleus">
+        <Sparkles size={21} />
+      </div>
+      <i />
+      <i />
+      <i />
+    </div>
+  );
+}
 export default function Operator({
   navigate,
   onClose,
+  onAction,
   open = true,
 }: {
   navigate: (view: View) => void;
   onClose: () => void;
+  onAction?: (action: Action) => void;
   open?: boolean;
 }) {
   const [messages, setMessages] = useState<
-    { question: string; reply?: Reply; error?: string }[]
+    { question: string; reply?: Reply; error?: string; actions?: Action[] }[]
   >([]);
-  const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
-  const controller = useRef<AbortController | null>(null);
-  const panel = useRef<HTMLDivElement>(null);
+  const [input, setInput] = useState(""),
+    [busy, setBusy] = useState(false),
+    [state, setState] = useState("standby");
+  const controller = useRef<AbortController | null>(null),
+    panel = useRef<HTMLDivElement>(null),
+    end = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -26,22 +49,30 @@ export default function Operator({
     return () => previous?.focus();
   }, [open]);
   useEffect(() => () => controller.current?.abort(), []);
+  useEffect(() => {
+    if (open) end.current?.scrollIntoView?.({ block: "nearest" });
+  }, [messages, open]);
   async function ask(question: string) {
     if (!question.trim() || busy) return;
     setInput("");
     setBusy(true);
-    setMessages((m) => [...m, { question }]);
-    controller.current = new AbortController();
-    const timeout = setTimeout(() => controller.current?.abort(), 30000);
+    setState("querying");
+    setMessages((m) => [...m.slice(-29), { question }]);
+    const abort = new AbortController();
+    controller.current = abort;
+    const timeout = setTimeout(() => abort.abort(), 30000);
     try {
-      const reply = await request<Reply>(
-        "/operator",
-        controller.current.signal,
-        { question },
-      );
+      const reply = await request<Reply>("/operator", abort.signal, {
+        question,
+      });
+      const actions = (Array.isArray(reply.actions) ? reply.actions : [])
+        .map(validateAction)
+        .filter((a): a is Action => a !== null);
       setMessages((m) =>
-        m.map((v, i) => (i === m.length - 1 ? { ...v, reply } : v)),
+        m.map((v, i) => (i === m.length - 1 ? { ...v, reply, actions } : v)),
       );
+      actions.forEach((a) => onAction?.(a));
+      setState("response ready");
     } catch {
       setMessages((m) =>
         m.map((v, i) =>
@@ -54,6 +85,7 @@ export default function Operator({
             : v,
         ),
       );
+      setState("connection error");
     } finally {
       clearTimeout(timeout);
       setBusy(false);
@@ -74,7 +106,7 @@ export default function Operator({
       <div className="panel-heading">
         <div>
           <span className="eyebrow">
-            <Sparkles size={14} /> GROUNDED INTELLIGENCE
+            <Sparkles size={14} /> CITY INTERFACE / 01
           </span>
           <h2>CITYHQ Operator</h2>
         </div>
@@ -82,11 +114,25 @@ export default function Operator({
           <X size={18} />
         </button>
       </div>
-      <p className="muted">
-        Ask your city signals. Deterministic queries, sourced answers.
+      <div className="operator-identity">
+        <OperatorCore state={state} />
+        <div>
+          <span className="eyebrow">{state.toUpperCase()}</span>
+          <p>
+            Your city.
+            <br />
+            <strong>Within reach.</strong>
+          </p>
+        </div>
+      </div>
+      <p className="caption">
+        Grounded, deterministic queries. Validated map and dashboard controls.
+        No external language-model service.
       </p>
       <div className="suggestions">
         {[
+          "Show Melbourne Park",
+          "Compare last six hours",
           "What’s happening in Melbourne right now?",
           "Why is the activity score elevated?",
           "Which sources are unavailable?",
@@ -97,30 +143,73 @@ export default function Operator({
           </button>
         ))}
       </div>
-      <div className="conversation" aria-live="polite">
+      <div
+        className="conversation"
+        role="log"
+        aria-label="Operator transcript"
+        aria-live="polite"
+        aria-busy={busy}
+      >
         {messages.map((m, i) => (
           <article key={i}>
             <p className="question">{m.question}</p>
             <p>{m.reply?.answer || m.error || "Querying city signals…"}</p>
             {m.reply && (
               <>
-                <div className="caption">
-                  {m.reply.references.map((r, i) => (
-                    <span key={i}>
-                      {r.source} · {r.status}{" "}
+                <div className="operator-actions">
+                  {m.actions?.map((action, j) => (
+                    <span className="badge" key={j}>
+                      {action.type.replaceAll("_", " ")}
+                      {onAction ? " · applied" : " · available"}
                     </span>
                   ))}
                 </div>
-                <button
-                  className="text-button"
-                  onClick={() => navigate(m.reply!.navigation as View)}
-                >
-                  Open relevant view →
-                </button>
+                <details>
+                  <summary>Sources & supporting data</summary>
+                  {m.reply.references.map((r, j) => (
+                    <div className="source-reference" key={j}>
+                      <strong>
+                        {r.source} · {r.status}
+                        {r.origin_status === "demo" ? " · DEMO" : ""}
+                      </strong>
+                      <p>
+                        Observed {melbourneTime(r.observed_at)} · retrieved{" "}
+                        {melbourneTime(r.fetched_at)}
+                        {r.stale ? " · STALE" : ""}
+                      </p>
+                      {r.limitations?.map((l) => (
+                        <p key={l}>{l}</p>
+                      ))}
+                    </div>
+                  ))}
+                  {!m.reply.references.length && (
+                    <p className="caption">
+                      {m.reply.intent === "map_focus"
+                        ? "Verified geographic catalogue; no live activity claim."
+                        : "No live source references for this query. Inspect the returned metadata below."}
+                    </p>
+                  )}
+                  <pre>
+                    {JSON.stringify(
+                      m.reply.supporting_data || {},
+                      null,
+                      2,
+                    ).slice(0, 12000)}
+                  </pre>
+                </details>
+                {VIEWS.includes(m.reply.navigation as View) && (
+                  <button
+                    className="text-button"
+                    onClick={() => navigate(m.reply!.navigation as View)}
+                  >
+                    Open relevant view →
+                  </button>
+                )}
               </>
             )}
           </article>
         ))}
+        <div ref={end} />
       </div>
       <form
         onSubmit={(e) => {
@@ -136,19 +225,25 @@ export default function Operator({
           maxLength={1000}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about Melbourne…"
+          placeholder="Ask, focus, compare…"
         />
         <button disabled={busy || !input.trim()} aria-label="Send question">
           <ArrowUp size={19} />
         </button>
       </form>
-      <button
-        className="text-button"
-        disabled={busy}
-        onClick={() => setMessages([])}
-      >
-        Clear conversation
-      </button>
+      <div className="operator-footer">
+        <span className="caption">SESSION ONLY · NO CHAT STORAGE</span>
+        <button
+          className="text-button"
+          disabled={busy}
+          onClick={() => {
+            setMessages([]);
+            setState("standby");
+          }}
+        >
+          Clear conversation
+        </button>
+      </div>
     </div>
   );
 }

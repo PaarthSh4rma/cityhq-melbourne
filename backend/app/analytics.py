@@ -1,7 +1,14 @@
 from datetime import datetime, timezone
+from decimal import ROUND_HALF_UP, Decimal
 from zoneinfo import ZoneInfo
 
-VERSION = "activity-proxy-1.0"
+VERSION = "activity-proxy-1.1"
+
+
+def total_score(values):
+    """Decimal half-up rounding matches the nonnegative browser simulation."""
+    total = sum((Decimal(str(value)) for value in values), Decimal(0))
+    return float(total.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
 
 
 def activity_score(signals, at=None):
@@ -49,7 +56,7 @@ def activity_score(signals, at=None):
             )
         )
     count = sum(usable.values())
-    score = round(sum(c["contribution"] for c in components), 1) if count else None
+    score = total_score(c["contribution"] for c in components) if count else None
     return dict(
         score=score,
         category="Unavailable"

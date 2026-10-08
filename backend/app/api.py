@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
 
 from app import persistence as db
-from app.analytics import activity_score
+from app.analytics import activity_score, total_score
 from app.config import settings
 from app.ingestion import ingestion
 from app.operator import answer
@@ -176,7 +176,7 @@ async def scenario(body: Scenario):
     return {
         "label": "Scenario simulation — not a real-world causal forecast",
         "before": current,
-        "after": round(time_context + body.events + body.transport + body.weather, 1),
+        "after": total_score([time_context, body.events, body.transport, body.weather]),
         "assumptions": body.model_dump(),
         "methodology_version": current["methodology_version"],
         "limitations": [

@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import {
-  Activity as ActivityIcon,
   ArrowDownToLine,
   ArrowUpRight,
   CloudSun,
@@ -10,7 +9,6 @@ import {
   Compass,
   Database,
   FlaskConical,
-  Layers,
   MapPin,
   Radio,
   RefreshCw,
@@ -19,9 +17,8 @@ import {
   Sparkles,
   TrainFront,
   Wind,
-  Zap,
 } from "lucide-react";
-import { motion, MotionConfig } from "framer-motion";
+import { MotionConfig } from "framer-motion";
 import {
   Area,
   AreaChart,
@@ -34,6 +31,7 @@ import {
   YAxis,
 } from "recharts";
 import { usePoll } from "@/lib/use-poll";
+import { gappedHistory } from "@/lib/history";
 import { API, melbourneTime } from "@/lib/api";
 import type {
   Activity,
@@ -48,6 +46,10 @@ import type {
   Weather,
 } from "@/lib/types";
 import Operator from "./operator";
+import CommandCentre from "./command-centre";
+import { BootSequence, CommandPalette } from "./workspace-controls";
+import { ResidualDiagnostics } from "./research-tools";
+import { DEFAULT_LAYERS, type Action, type Location } from "@/lib/commands";
 const CityMap = dynamic(() => import("./city-map"), {
   ssr: false,
   loading: () => <div className="city-map skeleton" />,
@@ -186,7 +188,7 @@ function Trend({ data, signal }: { data: History | null; signal: string }) {
         initialDimension={{ width: 600, height: 230 }}
         minWidth={0}
       >
-        <AreaChart data={data!.items}>
+        <AreaChart data={gappedHistory(data!.items)}>
           <defs>
             <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#5fe1d5" stopOpacity={0.25} />
@@ -221,7 +223,7 @@ function Trend({ data, signal }: { data: History | null; signal: string }) {
             labelFormatter={(v) => melbourneTime(String(v))}
           />
           <Area
-            type="monotone"
+            type="linear"
             dataKey={signal}
             stroke="#5fe1d5"
             strokeWidth={2}
@@ -247,6 +249,60 @@ export default function Dashboard() {
   const [area, setArea] = useState("all");
   const [hours, setHours] = useState(24);
   const [signal, setSignal] = useState("score");
+  const [palette, setPalette] = useState(false);
+  const [reduced, setReduced] = useState(false);
+  const [replay, setReplay] = useState(0);
+  const [layers, setLayers] = useState(DEFAULT_LAYERS);
+  const [camera, setCamera] = useState<{ location: Location; nonce: number }>({
+    location: "cbd",
+    nonce: 0,
+  });
+  const [compareNonce, setCompareNonce] = useState(0);
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () =>
+      setReduced(
+        localStorage.getItem("cityhq-reduced") === "true" || preference.matches,
+      );
+    sync();
+    preference.addEventListener("change", sync);
+    const shortcuts = (event: KeyboardEvent) => {
+      const typing =
+        event.target instanceof HTMLElement &&
+        (event.target.matches("input,textarea,select") ||
+          event.target.isContentEditable);
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPalette((v) => !v);
+      }
+      if (!typing && !event.metaKey && !event.ctrlKey && event.key === "?") {
+        event.preventDefault();
+        setOperator(true);
+      }
+    };
+    window.addEventListener("keydown", shortcuts);
+    return () => {
+      preference.removeEventListener("change", sync);
+      window.removeEventListener("keydown", shortcuts);
+    };
+  }, []);
+  function focus(location: Location) {
+    setCamera((v) => ({ location, nonce: v.nonce + 1 }));
+  }
+  function executeAction(action: Action) {
+    if (action.type === "navigate_dashboard") navigate(action.view);
+    else if (action.type === "focus_map_location") {
+      navigate("overview");
+      focus(action.location);
+    } else if (action.type === "toggle_map_layer") {
+      navigate("overview");
+      setLayers((v) => ({ ...v, [action.layer]: action.enabled }));
+    } else if (action.type === "select_time_range") {
+      navigate("overview");
+      setHours(action.hours);
+      setCompareNonce((v) => v + 1);
+    }
+  }
   const [model, setModel] = useState("selected");
   const [horizon, setHorizon] = useState(1);
   const weather = usePoll<Weather>("/weather", 600000);
@@ -339,8 +395,10 @@ export default function Dashboard() {
     forecastPoints[f.observed.length - 1].predicted =
       f.observed.at(-1)!.temperature;
   return (
-    <MotionConfig reducedMotion="user">
-      <div className="app-shell">
+    <MotionConfig reducedMotion={reduced ? "always" : "user"}>
+      <div
+        className={`app-shell overdrive ${reduced ? "reduced-effects" : ""}`}
+      >
         <a className="skip-link" href="#main">
           Skip to content
         </a>
@@ -366,6 +424,8 @@ export default function Dashboard() {
               <button
                 key={id}
                 className={view === id ? "active" : ""}
+                aria-label={label}
+                title={label}
                 aria-current={view === id ? "page" : undefined}
                 onClick={() => navigate(id)}
               >
@@ -391,6 +451,7 @@ export default function Dashboard() {
             </div>
             <button
               className="operator-launch"
+              aria-label="Open Operator"
               onClick={() => setOperator(true)}
             >
               <Sparkles size={18} />
@@ -409,7 +470,30 @@ export default function Dashboard() {
               <span className="separator">/</span>{" "}
               <b>{NAV.find((n) => n.id === view)?.label}</b>
             </span>
-            <Clock />
+            <div className="topbar-controls">
+              <button
+                onClick={() => setPalette(true)}
+                aria-label="Open command palette"
+              >
+                <Search size={15} />
+                <span>Commands</span>
+                <kbd>⌘ K</kbd>
+              </button>
+              <button
+                aria-pressed={reduced}
+                onClick={() => {
+                  const next = !reduced;
+                  setReduced(next);
+                  localStorage.setItem("cityhq-reduced", String(next));
+                }}
+              >
+                Reduced effects
+              </button>
+              <button onClick={() => setReplay((v) => v + 1)}>
+                Replay briefing
+              </button>
+              <Clock />
+            </div>
           </header>
           <main id="main">
             <div className="page-heading">
@@ -470,169 +554,32 @@ export default function Dashboard() {
               )}
             </div>
             {view === "overview" && (
-              <>
-                <section className="metrics" aria-label="City signals">
-                  {[
-                    {
-                      label: "Urban activity proxy",
-                      value: a?.score ?? "—",
-                      suffix: "/ 100",
-                      note: a
-                        ? `${a.category} · ${Math.round(a.coverage * 100)}% source coverage`
-                        : "Computing available signals",
-                      icon: ActivityIcon,
-                      color: "cyan",
-                    },
-                    {
-                      label: "Service notices",
-                      value:
-                        transit.data?.metadata.status === "unavailable"
-                          ? "—"
-                          : (transit.data?.disruption_count ?? "—"),
-                      suffix: "notices",
-                      note: "Disruptions ≠ passenger congestion",
-                      icon: TrainFront,
-                      color: "amber",
-                    },
-                    {
-                      label: "Current weather",
-                      value:
-                        w?.temperature != null
-                          ? `${Math.round(w.temperature)}°`
-                          : "—",
-                      suffix: "C",
-                      note: w?.condition || "Awaiting weather source",
-                      icon: CloudSun,
-                      color: "cyan",
-                    },
-                    {
-                      label: "Upcoming events",
-                      value:
-                        events.data?.metadata.status === "unavailable"
-                          ? "—"
-                          : (events.data?.event_count ?? "—"),
-                      suffix: "listings",
-                      note: "Listed events · attendance unknown",
-                      icon: MapPin,
-                      color: "violet",
-                    },
-                  ].map((metric, i) => (
-                    <motion.article
-                      key={metric.label}
-                      className={`metric ${metric.color}`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.25, delay: i * 0.04 }}
-                    >
-                      <div className="metric-top">
-                        <span>{metric.label}</span>
-                        <metric.icon size={18} />
-                      </div>
-                      <div className="metric-value">
-                        {metric.value}
-                        <small>{metric.suffix}</small>
-                      </div>
-                      <p>{metric.note}</p>
-                      <div className="metric-bottom">
-                        {i === 0 ? (
-                          <span>
-                            HEURISTIC · {a?.methodology_version || "PENDING"}
-                          </span>
-                        ) : (
-                          <Freshness
-                            meta={sources[i === 1 ? 1 : i === 2 ? 0 : 2].meta}
-                          />
-                        )}
-                      </div>
-                    </motion.article>
-                  ))}
-                </section>
-                <div className="overview-grid">
-                  <section className="panel map-panel">
-                    <div className="panel-heading">
-                      <div>
-                        <span className="eyebrow">GEOSPATIAL CONTEXT</span>
-                        <h2>Melbourne signal map</h2>
-                      </div>
-                      <Layers size={19} />
-                    </div>
-                    <CityMap events={eventItems} transit={transitItems} />
-                  </section>
-                  <section className="panel">
-                    <div className="panel-heading">
-                      <div>
-                        <span className="eyebrow amber-text">
-                          NETWORK WATCH
-                        </span>
-                        <h2>Operational notices</h2>
-                      </div>
-                      <span className="count">{transitItems.length}</span>
-                    </div>
-                    <Freshness meta={transit.data?.metadata} />
-                    <Notices items={transitItems.slice(0, 3)} />
-                    <button
-                      className="text-button"
-                      onClick={() => navigate("transit")}
-                    >
-                      Explore transit intelligence <ArrowUpRight size={14} />
-                    </button>
-                  </section>
-                  <section className="panel">
-                    <div className="panel-heading">
-                      <div>
-                        <span className="eyebrow">THE SIGNAL OVER TIME</span>
-                        <h2>Activity history</h2>
-                      </div>
-                      <select
-                        aria-label="Historical range"
-                        value={hours}
-                        onChange={(e) => setHours(Number(e.target.value))}
-                      >
-                        <option value={24}>24 hours</option>
-                        <option value={168}>7 days</option>
-                        <option value={720}>30 days</option>
-                      </select>
-                    </div>
-                    <Trend data={history.data} signal="score" />
-                    <p className="caption">
-                      Stored hourly values · may include demo inputs · no
-                      backfilled trends
-                    </p>
-                  </section>
-                  <section className="panel">
-                    <div className="panel-heading">
-                      <div>
-                        <span className="eyebrow violet-text">
-                          EXPLAINABLE BY DESIGN
-                        </span>
-                        <h2>Behind the activity score</h2>
-                      </div>
-                      <Zap size={19} />
-                    </div>
-                    <Contributions activity={a} />
-                    <button
-                      className="text-button"
-                      onClick={() => navigate("forecasting")}
-                    >
-                      Explore the forecasting lab <ArrowUpRight size={14} />
-                    </button>
-                  </section>
-                </div>
-                <section className="panel outlook">
-                  <FlaskConical size={22} />
-                  <div>
-                    <h2>Short-term temperature outlook</h2>
-                    <p>
-                      {f?.available
-                        ? `${f.metadata?.mode} research · ${f.predictions[0]?.temperature}°C at ${melbourneTime(f.predictions[0]?.timestamp)}. This is separate from the activity proxy.`
-                        : f?.reason || "Checking model availability…"}
-                    </p>
-                  </div>
-                  <button onClick={() => navigate("forecasting")}>
-                    Inspect forecast →
-                  </button>
-                </section>
-              </>
+              <CommandCentre
+                weather={weather.data}
+                transit={transit.data}
+                events={events.data}
+                activity={activity.data}
+                history={history.data}
+                diagnostics={diagnostics.data}
+                layers={layers}
+                onLayer={(layer, enabled) =>
+                  setLayers((v) => ({ ...v, [layer]: enabled }))
+                }
+                camera={camera}
+                onFocus={focus}
+                hours={hours}
+                onHours={setHours}
+                navigate={navigate}
+                onOperator={() => setOperator(true)}
+                reduced={reduced}
+                area={area}
+                compareNonce={compareNonce}
+                sourceErrors={{
+                  weather: weather.error,
+                  transport: transit.error,
+                  events: events.error,
+                }}
+              />
             )}
             {view === "transit" && (
               <>
@@ -976,6 +923,41 @@ export default function Dashboard() {
                         ))}
                       <p className="caption">{f.metadata.importance_note}</p>
                     </section>
+                    <section className="panel full-width model-provenance">
+                      <details>
+                        <summary>
+                          Training provenance & chronological split dates
+                        </summary>
+                        <p className="caption">
+                          {f.metadata.version} · {f.metadata.target} ·{" "}
+                          {f.metadata.mode} · seed{" "}
+                          {f.metadata.seed ?? "not supplied"}
+                        </p>
+                        <p className="caption">{f.metadata.selection}</p>
+                        {Object.entries(f.metadata.splits).map(
+                          ([name, split]) => (
+                            <div className="data-row" key={name}>
+                              <strong>
+                                {name} · {split.rows} rows
+                              </strong>
+                              <span>
+                                {melbourneTime(split.start)} →{" "}
+                                {melbourneTime(split.end)}
+                              </span>
+                            </div>
+                          ),
+                        )}
+                        <p className="caption">
+                          Dataset SHA-256:{" "}
+                          {f.metadata.dataset_sha256 ?? "not supplied"}
+                        </p>
+                        <p className="caption">
+                          Forecast dates are shown in Australia/Melbourne.
+                          Synthetic inference follows the stored 2025 research
+                          timeline, separate from current weather.
+                        </p>
+                      </details>
+                    </section>
                     <section className="panel full-width">
                       <h2>Model limitations</h2>
                       {f.metadata.limitations.map((l) => (
@@ -1022,6 +1004,7 @@ export default function Dashboard() {
                 </section>
               </>
             )}
+            {view === "forecasting" && <ResidualDiagnostics forecast={f} />}
             {view === "diagnostics" && (
               <div className="two-columns">
                 <section className="panel">
@@ -1145,38 +1128,16 @@ export default function Dashboard() {
         <Operator
           open={operator}
           navigate={navigate}
+          onAction={executeAction}
           onClose={() => setOperator(false)}
         />
+        <CommandPalette
+          open={palette}
+          onClose={() => setPalette(false)}
+          onAction={executeAction}
+        />
+        <BootSequence sources={sources} reduced={reduced} replay={replay} />
       </div>
     </MotionConfig>
-  );
-}
-function Contributions({ activity }: { activity: Activity | null }) {
-  return activity ? (
-    <>
-      <p className="muted">A signal index, not measured foot traffic.</p>
-      {activity.components.map((c) => (
-        <details key={c.name} className="contribution">
-          <summary>
-            <span>{c.name}</span>
-            <strong>
-              {c.contribution.toFixed(1)} <small>/ {c.maximum}</small>
-            </strong>
-          </summary>
-          <progress
-            aria-label={`${c.name} contribution`}
-            value={c.contribution}
-            max={c.maximum}
-          />
-          <p className="caption">{c.explanation}</p>
-        </details>
-      ))}
-      <p className="caption">
-        Missing or stale components contribute zero. Weights are design choices;
-        coverage is not statistical confidence.
-      </p>
-    </>
-  ) : (
-    <Empty>Waiting for activity inputs.</Empty>
   );
 }

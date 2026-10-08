@@ -1,17 +1,24 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { request } from "./api";
-export function usePoll<T>(path: string, interval: number) {
+export function usePoll<T>(path: string | null, interval: number) {
   const [result, setResult] = useState<{
     path: string;
     data: T;
     lastSuccess: string;
   } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ path: string; message: string } | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [paused, setPaused] = useState(false);
   const trigger = useRef<() => void>(() => {});
   useEffect(() => {
+    if (!path) {
+      trigger.current = () => {};
+      return;
+    }
+    const activePath = path;
     let disposed = false,
       running = false,
       failures = 0;
@@ -25,10 +32,10 @@ export function usePoll<T>(path: string, interval: number) {
       controller = new AbortController();
       const timeout = setTimeout(() => controller?.abort(), 30000);
       try {
-        const value = await request<T>(path, controller.signal);
+        const value = await request<T>(activePath, controller.signal);
         if (!disposed) {
           setResult({
-            path,
+            path: activePath,
             data: value,
             lastSuccess: new Date().toISOString(),
           });
@@ -37,9 +44,11 @@ export function usePoll<T>(path: string, interval: number) {
         }
       } catch {
         if (!disposed) {
-          setError(
-            "API connection failed. Last successful data, if any, is retained.",
-          );
+          setError({
+            path: activePath,
+            message:
+              "API connection failed. Last successful data, if any, is retained.",
+          });
           failures++;
         }
       } finally {
@@ -75,9 +84,9 @@ export function usePoll<T>(path: string, interval: number) {
     };
   }, [path, interval]);
   return {
-    data: result?.path === path ? result.data : null,
-    error,
-    loading,
+    data: path && result?.path === path ? result.data : null,
+    error: error?.path === path ? error.message : null,
+    loading: !!path && loading,
     lastSuccess: result?.path === path ? result.lastSuccess : null,
     paused,
     refresh: useCallback(() => trigger.current(), []),

@@ -159,6 +159,7 @@ def observed_frame():
             if (
                 payload["metadata"]["origin_status"] == "live"
                 and payload.get("temperature") is not None
+                and payload["metadata"].get("observed_at")
             ):
                 points.append(
                     dict(

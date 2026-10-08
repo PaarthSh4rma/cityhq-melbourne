@@ -2,7 +2,7 @@
 
 | Signal | Adapter | Default | Coverage and limitations |
 |---|---|---|---|
-| Weather | wttr.in | Live attempt | Existing credential-free service; area-level conditions, local observation timestamp, daily min/max when supplied; best-effort availability |
+| Weather | wttr.in | Live attempt | Existing credential-free service; area-level conditions, dated observation timestamp when supplied (otherwise unknown), daily min/max when supplied; best-effort availability |
 | Weather | OpenWeather | Optional key | Current conditions only; provider UTC timestamp; m/s converted to km/h |
 | Weather | demo | Explicit opt-in | Fixed fictional 18°C, 14 km/h, 62%; never called live |
 | Transport | demo | Default | Three fictional notices; route labels explicitly demo; no coordinates |
@@ -12,7 +12,7 @@
 
 No attendance, congestion, audience impact or inferred exact disruption coordinates are supplied. Legacy impact fields remain zero and mean **not assessed**. PTV severity is unknown where its response does not contain reliable severity. Event/transit `observed_at` is the snapshot retrieval time, not a claim about when each event or incident began. Demo timestamps are generation times.
 
-Every signal carries provider, status, origin status, observed/fetched UTC timestamps, age, TTL, stale flag, safe error and limitations. Cached describes retrieval; `origin_status` retains whether data was actually live or demo. Live weather older than max(1h, 2×TTL) is marked stale. An unavailable payload uses null weather values and has no successful timestamps; clients must read metadata before interpreting empty arrays/counts.
+Every signal carries provider, status, origin status, observed/fetched UTC timestamps, age, TTL, stale flag, safe error and limitations. Cached describes retrieval; `origin_status` retains whether data was actually live or demo. Live weather with a dated observation older than max(1h, 2×TTL) is marked stale. wttr responses without a dated timestamp have unknown observation age; source freshness then describes successful retrieval only. These undated observations are excluded from observed-model training. An unavailable payload uses null weather values and has no successful timestamps; clients must read metadata before interpreting empty arrays/counts.
 
 ## Activity proxy v1
 

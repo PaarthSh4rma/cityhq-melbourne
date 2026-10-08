@@ -47,10 +47,20 @@ async def fetch_weather(adapter):
     if adapter == "wttr":
         data = await request_json("https://wttr.in/Melbourne?format=j1")
         current = data["current_condition"][0]
-        observed = datetime.strptime(current["localObsDateTime"], "%Y-%m-%d %I:%M %p")
-        from zoneinfo import ZoneInfo
+        observed = None
+        limitations = ["Area-level weather; wttr.in availability is not guaranteed."]
+        if current.get("localObsDateTime"):
+            from zoneinfo import ZoneInfo
 
-        observed = observed.replace(tzinfo=ZoneInfo("Australia/Melbourne")).astimezone(UTC)
+            observed = (
+                datetime.strptime(current["localObsDateTime"], "%Y-%m-%d %I:%M %p")
+                .replace(tzinfo=ZoneInfo("Australia/Melbourne"))
+                .astimezone(UTC)
+            )
+        else:
+            limitations.append(
+                "Provider omitted a dated observation timestamp; observation age is unknown. Retrieval time is available separately."
+            )
         forecast = [
             dict(date=d["date"], minimum=float(d["mintempC"]), maximum=float(d["maxtempC"]))
             for d in data.get("weather", [])
@@ -65,7 +75,7 @@ async def fetch_weather(adapter):
                 forecast=forecast,
             ),
             observed,
-            ["Area-level weather; wttr.in availability is not guaranteed."],
+            limitations,
         )
     if adapter == "openweather":
         key = os.environ["OPENWEATHER_API_KEY"]

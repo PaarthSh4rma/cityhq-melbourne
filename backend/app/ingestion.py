@@ -41,7 +41,7 @@ class Ingestion:
                         origin_status=origin,
                         observed_at=observed,
                         fetched_at=now,
-                        age_seconds=max(0, (now - observed).total_seconds()),
+                        age_seconds=max(0, (now - observed).total_seconds()) if observed else None,
                         ttl_seconds=ttl,
                         limitations=limitations,
                     ),

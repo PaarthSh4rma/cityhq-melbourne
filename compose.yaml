@@ -3,9 +3,11 @@ services:
     build: ./backend
     ports: ["8000:8000"]
     environment:
-      WEATHER_ADAPTER: ${WEATHER_ADAPTER:-demo}
-      TRANSPORT_ADAPTER: ${TRANSPORT_ADAPTER:-demo}
-      EVENTS_ADAPTER: ${EVENTS_ADAPTER:-demo}
+      AIR_QUALITY_ADAPTER: ${AIR_QUALITY_ADAPTER:-open-meteo-aq}
+      DELHI_TRANSPORT_ADAPTER: ${DELHI_TRANSPORT_ADAPTER:-delhi-metro-static}
+      WEATHER_ADAPTER: ${WEATHER_ADAPTER:-open-meteo}
+      TRANSPORT_ADAPTER: ${TRANSPORT_ADAPTER:-ptv}
+      EVENTS_ADAPTER: ${EVENTS_ADAPTER:-ticketmaster}
       OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
       PTV_DEVID: ${PTV_DEVID:-}
       PTV_API_KEY: ${PTV_API_KEY:-}

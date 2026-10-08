@@ -1,5 +1,7 @@
 # Data provenance and activity methodology
 
+**Reality Engine update:** The [two-city delivery report](REALITY_ENGINE_DELIVERY.md) describes current city contexts, Open-Meteo/AQ defaults, static Delhi Metro, credentialed provider boundaries, city scoring and backtesting. Earlier examples below document the preserved Melbourne baseline.
+
 | Signal | Adapter | Default | Coverage and limitations |
 |---|---|---|---|
 | Weather | wttr.in | Live attempt | Existing credential-free service; area-level conditions, dated observation timestamp when supplied (otherwise unknown), daily min/max when supplied; best-effort availability |

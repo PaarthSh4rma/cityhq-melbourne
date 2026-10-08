@@ -1,5 +1,7 @@
 # Operator tool reference
 
+**Reality Engine update:** The [two-city delivery report](REALITY_ENGINE_DELIVERY.md) describes current city contexts, Open-Meteo/AQ defaults, static Delhi Metro, credentialed provider boundaries, city scoring and backtesting. Earlier examples below document the preserved Melbourne baseline.
+
 Operator is a deterministic, local API router. It does not call an external language model, execute arbitrary code, infer attendance, or use city listings as instructions. Questions are limited to 1,000 characters; unknown JSON fields are rejected. Each response contains an answer, intent, source references, tool calls, structured supporting data and validated UI actions. History lasts only while this browser session/component remains mounted; at most 30 messages are retained in memory.
 
 ## Queries

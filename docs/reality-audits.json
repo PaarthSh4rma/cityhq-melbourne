@@ -1,0 +1,49 @@
+{
+  "verified_at": "2026-10-08T14:19:20.700992+00:00",
+  "python": {
+    "database": "OSV.dev querybatch",
+    "pinned_packages": 38,
+    "findings": []
+  },
+  "npm": {
+    "production": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "packages": []
+    },
+    "full": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 5,
+        "critical": 0,
+        "total": 5
+      },
+      "packages": [
+        "@next/eslint-plugin-next",
+        "braces",
+        "eslint-config-next",
+        "fast-glob",
+        "micromatch"
+      ]
+    }
+  },
+  "secret_scan": {
+    "scope": "Tracked and non-ignored untracked text files; actual environment files are ignored and were not read",
+    "rules": [
+      "private-key",
+      "aws-access-id",
+      "github-token",
+      "openai-key",
+      "literal-provider-key"
+    ],
+    "findings": []
+  }
+}

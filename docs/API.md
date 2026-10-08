@@ -1,5 +1,7 @@
 # API reference
 
+**Reality Engine update:** The [two-city delivery report](REALITY_ENGINE_DELIVERY.md) describes current city contexts, Open-Meteo/AQ defaults, static Delhi Metro, credentialed provider boundaries, city scoring and backtesting. Earlier examples below document the preserved Melbourne baseline.
+
 Interactive OpenAPI: `http://127.0.0.1:8000/docs`. Versioned prefix: `/api/v1`.
 
 | Method / path | Purpose |

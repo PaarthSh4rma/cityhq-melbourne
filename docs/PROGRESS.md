@@ -103,3 +103,12 @@ Subsequent phases record implementation and actual validation below.
 - OSV identified AnyIO/idna/Starlette advisories; upgraded to 4.15.1/3.20/1.7.0 plus required typing_extensions 4.16.0. Repeat OSV scan: zero findings in 38 pins. One upstream TestClient httpx deprecation remains.
 - npm production audit: zero. Full audit: five high development lint-chain entries from one unresolved braces advisory; no incompatible forced Next lint downgrade applied.
 - Architecture/API/provenance/ML/deployment docs, Operator catalogue, geography references and the full Overdrive delivery report updated. No push or deployment.
+
+## O — Reality Engine: Melbourne and Delhi
+
+- Added the canonical two-city registry, real Open-Meteo weather/CAMS AQ adapters, credential-gated PTV/Ticketmaster adapters and a verified static OSM Delhi Metro extract. Actual public-provider responses were checked separately from deterministic fixtures.
+- Safely migrated existing Melbourne history with backup and preserved row counts. City-scoped persistence, cache/freshness, raw-payload redaction, ingestion diagnostics, scoring, replay, exports, ML artifacts and Operator actions are implemented.
+- Added the premium city selector, AQ standards/comparison, Metro search/geometry and city-local UI context. Late old-city responses are cancelled. Fixed the map readiness race on recreation and added browser regression coverage.
+- Final checks: 44 backend tests, 11 frontend unit tests, 9 browser tests, lint/format/type checks, production build, Alembic schema and registry checks passed. Production preview verified with real data and saved desktop/mobile screenshots.
+- Production dependency audits report no findings; the full npm audit retains five development-only lint-chain entries documented in the delivery report. No secret patterns detected. Real observed ML backtesting correctly reports insufficient coverage.
+- Local milestones: `48c7691` and `060ba77`; delivery evidence and activation boundaries are in [REALITY_ENGINE_DELIVERY.md](REALITY_ENGINE_DELIVERY.md). PTV/Ticketmaster keys remain required; Metro has no claimed live delay feed. No push or deployment.

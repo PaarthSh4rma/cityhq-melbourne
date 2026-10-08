@@ -1,5 +1,7 @@
 # Forecasting experiment: next-hour temperature
 
+**Reality Engine update:** The [two-city delivery report](REALITY_ENGINE_DELIVERY.md) describes current city contexts, Open-Meteo/AQ defaults, static Delhi Metro, credentialed provider boundaries, city scoring and backtesting. Earlier examples below document the preserved Melbourne baseline.
+
 The activity index is deterministic. The ML target is **temperature one hour ahead**, an available component signal. No footfall, passenger or congestion ground truth exists in this repository.
 
 ## Dataset and features

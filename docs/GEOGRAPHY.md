@@ -27,3 +27,11 @@ The map is loaded dynamically on map-bearing views, cleans up its instance, mark
 OpenFreeMap resources load directly in the browser; these requests expose ordinary connection/referrer information to that tile provider. No CityHQ geolocation, analytics or telemetry is requested. `NEXT_PUBLIC_MAP_STYLE` can select an approved provider style. Review third-party terms and anticipated traffic before public deployment; no guaranteed public SLA is implied.
 
 References: [OpenFreeMap setup](https://openfreemap.org/quick_start/), [MapLibre 3D buildings example](https://maplibre.org/maplibre-gl-js/docs/examples/display-buildings-in-3d/), [OSM attribution/licensing](https://www.openstreetmap.org/copyright).
+
+## Delhi / Reality Engine
+
+Delhi camera presets and reference centre are actual OSM station nodes: Rajiv Chowk (77.2193123, 28.6327062; node 6539894851), Kashmere Gate (77.2282488, 28.6674493; node 268381477), New Delhi (77.2227421, 28.6434826; node 554257841), Central Secretariat (77.2122822, 28.6158794; node 5453646586). The canonical registry retains each source URL. The reference centre is a camera/query reference point, not an asserted city centroid.
+
+The bundled [Delhi Metro derived database](../backend/app/data/delhi-metro.json) contains 245 station nodes tagged Delhi Metro and 24 directional route relations, from the public OSM extract dated 2026-10-08T13:47:50Z. [Source, query and ODbL attribution](../backend/app/data/README.md). Supplied MultiLineStrings retain gaps rather than inventing connections. Other networks are excluded. This supports static exploration, not live service status, schedules or route availability.
+
+Air quality is a labelled CAMS city-grid estimate (~45 km), with no invented neighbourhood heatmap. Actual model time, standard and status stay visible. Official DMRC download form/terms were not bypassed; details and limitations appear in the [source matrix](REALITY_ENGINE_DELIVERY.md).

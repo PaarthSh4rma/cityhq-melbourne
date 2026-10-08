@@ -1,5 +1,7 @@
 # System design
 
+**Reality Engine update:** The [two-city delivery report](REALITY_ENGINE_DELIVERY.md) describes current city contexts, Open-Meteo/AQ defaults, static Delhi Metro, credentialed provider boundaries, city scoring and backtesting. Earlier examples below document the preserved Melbourne baseline.
+
 ```mermaid
 flowchart LR
   Browser[Next.js / React dashboard] -->|typed polling| API[FastAPI /api/v1]

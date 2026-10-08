@@ -1,20 +1,21 @@
-# CITYHQ · Melbourne
+# CITYHQ · Melbourne / Delhi
 
-**A Melbourne command centre. Real geography. Explainable city signals.**
+**Two cities. Real public feeds. Honest provenance.**
 
-[Overdrive delivery report](docs/OVERDRIVE_DELIVERY.md) · [Operator commands](docs/OPERATOR.md) · [Geographic sources](docs/GEOGRAPHY.md)
+[Reality Engine delivery](docs/REALITY_ENGINE_DELIVERY.md) · [Overdrive delivery report](docs/OVERDRIVE_DELIVERY.md) · [Operator commands](docs/OPERATOR.md) · [Geographic sources](docs/GEOGRAPHY.md)
 
-CITYHQ is a local-first urban intelligence platform that brings Melbourne weather, service notices and event listings into one operational workspace. It demonstrates full-stack engineering, data provenance, time-series persistence and reproducible ML while making the boundary between real observations, demo fixtures and predictions explicit.
+CITYHQ is a local-first urban intelligence platform that brings Melbourne and Delhi weather, modelled air quality, available transport information and event listings into one operational workspace. It demonstrates full-stack engineering, data provenance, time-series persistence and reproducible ML while making the boundary between real observations, demo fixtures and predictions explicit.
 
 ## What is implemented
 
-- Six responsive views: Overview, Transit Intelligence, Weather Intelligence, Event Intelligence, Forecasting Lab and System Diagnostics.
-- FastAPI adapters for wttr.in/OpenWeather, PTV and Ticketmaster; clearly labelled offline demos.
-- SQLite historical observations, Alembic migrations, hourly aggregates, retention and CSV export.
+- Seven responsive views with a Melbourne / Delhi selector: Overview, Transit, Weather, Air Quality, Events, Forecasting and Diagnostics.
+- Verified Open-Meteo weather and CAMS air-quality estimates for both cities. PTV HMAC and paginated Ticketmaster adapters with explicit credentials-required states. Legacy Melbourne weather adapters and selectable offline demos remain.
+- Delhi Metro explorer with 245 OSM station nodes and 24 directional route relations; attributed static geometry, station search and route filtering. No live Metro delays are claimed.
+- City-scoped SQLite observations, raw provider payloads, Alembic migrations, hourly aggregates, retention, historical replay and CSV export.
 - Explainable activity heuristic with component contributions, missing-input coverage and freshness.
 - Reproducible next-hour temperature experiment: persistence baseline, Ridge and random forest; chronological evaluation and persisted inference.
 - CITYHQ Operator: deterministic, grounded internal queries plus validated camera, layer, navigation and time-range actions. Session transcript, supporting data, reset and real processing states. No paid LLM required.
-- Map-first command centre: tilted MapLibre vector geography, dataset-supported 3D buildings, seven verified camera presets, selectable signals, layer controls and provider-coordinate markers.
+- Map-first command centre: tilted MapLibre vector geography, dataset-supported 3D buildings, eleven verified camera presets across the two cities, selectable signals, layer controls and provider-coordinate markers.
 - Stored-capture time machine, provenance-grouped period comparisons, gap-aware charts and a separate deterministic scenario lab.
 - Skippable first-session briefing, keyboard command palette, collapsible instrumentation, reduced effects and responsive navigation.
 - Typed polling with shared GET deduplication, independent subscriber cancellation, visibility awareness, bounded retries and honest error states.
@@ -47,22 +48,26 @@ npm run dev
 
 Open [CITYHQ](http://localhost:3000), [API reference](http://127.0.0.1:8000/docs) and [health](http://127.0.0.1:8000/health).
 
-For a deterministic, credential-free demo, set `WEATHER_ADAPTER=demo` in the backend environment. Transport and events default to demo already. Default weather is `wttr` to retain the existing weather integration. If ports are occupied, use `--port 8105` for uvicorn and `npm run dev -- --port 3105`, set `NEXT_PUBLIC_API_URL=http://127.0.0.1:8105`, and add `http://localhost:3105,http://127.0.0.1:3105` to `CORS_ORIGINS`.
+The running local preview uses [port 3105](http://127.0.0.1:3105) and [API 8105](http://127.0.0.1:8105/docs). For those ports, build/run the frontend with `NEXT_PUBLIC_API_URL=http://127.0.0.1:8105` and allow `http://127.0.0.1:3105` in backend CORS. Existing environment files are preserved; update old adapter selections explicitly if they still select demos.
 
 ## Data status and credentials
 
-| Source | Default | Enable real provider |
+| Source | Default | Activation / limitations |
 |---|---|---|
-| Weather | wttr.in live attempt; unavailable on failure | No key for wttr; `WEATHER_ADAPTER=openweather` + `OPENWEATHER_API_KEY` for alternative |
-| Transit | Explicit fictional demo notices | `TRANSPORT_ADAPTER=ptv`, `PTV_DEVID`, `PTV_API_KEY` |
-| Events | Explicit fictional demo listings | `EVENTS_ADAPTER=ticketmaster`, `TICKETMASTER_API_KEY` |
-| ML | Synthetic research experiment after training | Accumulate live weather, then train with `--mode observed` |
+| Weather, both cities | `open-meteo`, verified modelled current conditions and forecast | Public noncommercial API, no key; CC BY attribution, no SLA |
+| Air quality, both cities | `open-meteo-aq`, verified CAMS model estimates | PM2.5/PM10/NO₂/O₃; US and European AQI explicitly distinct from Indian AQI |
+| Melbourne transit | `ptv` | `PTV_DEVID` + `PTV_API_KEY`; missing keys report `credentials_required` |
+| Delhi transit | `delhi-metro-static` | Bundled public OSM snapshot, ODbL; operational status unknown. Official DMRC download requires a terms/identity form and was not bypassed |
+| Events, both cities | `ticketmaster` | `TICKETMASTER_API_KEY`; bounded pagination; zero listings differs from failure; Delhi coverage incomplete |
+| ML | Separate city artifacts | `--city melbourne` or `--city delhi`; synthetic research labels retained; genuine observed backtesting currently reports insufficient coverage |
 
-Provider credentials stay server-side. No live fallback is fabricated. A failed refresh retains previously successful data with stale metadata. Provider interfaces are covered by deterministic fixtures; real credentialed PTV/Ticketmaster access still requires verification with your account.
+For a fully offline demo explicitly set `WEATHER_ADAPTER=demo AIR_QUALITY_ADAPTER=demo TRANSPORT_ADAPTER=demo EVENTS_ADAPTER=demo`. Delhi Metro may remain static; `DELHI_TRANSPORT_ADAPTER=demo` is also available. No provider failure silently selects a demo. Credentials stay server-side. Live means a recent real-provider fetch, not proof of a ground-station measurement; data kind is reported separately. Cached data has an age; stale data is excluded from activity scoring.
+
+Provider documentation, licences, actual smoke evidence and account limitations are in the [source matrix](docs/REALITY_ENGINE_DELIVERY.md). Commercial Open-Meteo use needs an appropriate provider agreement; no paid resources were created.
 
 ## Analytics and ML
 
-Activity score weights: event listings 40, service notices 25, weather suitability 15, time context 20. Missing/stale components are omitted without rescaling. Coverage describes available inputs, not statistical confidence. Full [methodology and sensitivity](docs/DATA_AND_SCORING.md).
+Melbourne weights: event listings 40, service notices 25, weather suitability 15, time context 20 (maximum 100). Delhi omits unmeasured service status (maximum 75) and uses a separate 26°C temperature suitability prior. AQI is reported separately and never increases activity. Different city score maxima and coverage prevent direct activity comparisons. Missing/stale components are omitted without rescaling. Coverage describes available inputs, not statistical confidence. Full [methodology and sensitivity](docs/DATA_AND_SCORING.md).
 
 The executed synthetic experiment uses 180 days of hourly generated temperature with causal lags and a 60/20/20 chronological split. Test results:
 
@@ -72,7 +77,7 @@ The executed synthetic experiment uses 180 days of hourly generated temperature 
 | Ridge | 0.707 | 0.880 |
 | Random forest (validation-selected) | 0.755 | 0.938 |
 
-These are real results on **synthetic data**, not evidence of Melbourne forecast accuracy. Ridge happened to perform better on the held-out test; selection remains based on validation. [Reproduction and limitations](docs/ML_METHODOLOGY.md) · [Full evaluation artifact](docs/model-evaluation.json).
+These are real results on **synthetic data**, not evidence of Melbourne forecast accuracy. The separate [Delhi synthetic evaluation](docs/model-evaluation-delhi.json) is also reproducible and does not establish Delhi accuracy. Ridge happened to perform better on the held-out test; selection remains based on validation. [Reproduction and limitations](docs/ML_METHODOLOGY.md) · [Full evaluation artifact](docs/model-evaluation.json).
 
 ## Architecture
 
@@ -140,3 +145,19 @@ All six views were captured at CSS viewport widths 1920, 1440, 768 and 390. Addi
 MIT licence. Provider data and map tiles remain subject to their own terms.
 
 The review preview uses [frontend port 3105](http://127.0.0.1:3105) and [API port 8105](http://127.0.0.1:8105/docs). See the delivery report for the exact commands; the default setup above still uses 3000/8000.
+
+## Reality Engine commands
+
+All city APIs accept `?city=melbourne|delhi`; omitted city retains Melbourne compatibility. `/api/v1/air-quality`, `/api/v1/metro?city=delhi`, `/api/v1/compare/air-quality` and `/api/v1/cities` are new. Operator accepts `{"question":"What is the AQI in Delhi?","city":"melbourne"}` and returns validated city/navigation actions.
+
+```sh
+cd backend
+venv/bin/python -m app.ml.pipeline --city delhi --mode synthetic
+venv/bin/python -m app.ml.pipeline --city delhi --mode observed --backtest
+# Optional public network verification, kept out of CI:
+PYTHONPATH=. venv/bin/python scripts/verify_providers.py --credentialed
+# After editing app/cities.json, regenerate the small frontend registry:
+venv/bin/python scripts/sync_city_registry.py
+```
+
+Backtesting excludes synthetic and modelled current weather; no real-world accuracy is claimed until sufficient genuine observed city history exists. Open-Meteo values remain useful model estimates in live and historical views.

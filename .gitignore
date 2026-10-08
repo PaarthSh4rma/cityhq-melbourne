@@ -167,3 +167,5 @@ test-results/
 # Provider probes, backups and isolated previews
 backend/tmp/
 .next-e2e/
+
+.next-reality/

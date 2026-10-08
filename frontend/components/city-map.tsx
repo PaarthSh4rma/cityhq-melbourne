@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Crosshair, Layers3 } from "lucide-react";
-import type { Item, Weather } from "@/lib/types";
+import { useCity } from "@/lib/city-context";
+import type { AirQuality, MetroNetwork, Item, Weather } from "@/lib/types";
 import {
   DEFAULT_LAYERS,
   LAYERS,
@@ -11,12 +12,14 @@ import {
   type Layer,
   type Location,
 } from "@/lib/commands";
-import { PLACES, placeForArea } from "@/lib/geography";
+import { placeForArea } from "@/lib/geography";
 export type MapSelection = { item: Item; kind: "events" | "transit" };
 export default function CityMap({
   events,
   transit,
   weather,
+  airQuality,
+  network,
   layers: controlled,
   onLayer,
   camera,
@@ -28,6 +31,8 @@ export default function CityMap({
   events: Item[];
   transit: Item[];
   weather?: Weather | null;
+  airQuality?: AirQuality | null;
+  network?: MetroNetwork | null;
   layers?: Layers;
   onLayer?: (layer: Layer, enabled: boolean) => void;
   camera?: { location: Location; nonce: number };
@@ -36,8 +41,10 @@ export default function CityMap({
   onSelect?: (selection: MapSelection) => void;
   reduced?: boolean;
 }) {
+  const { city, config, places: PLACES } = useCity();
   const container = useRef<HTMLDivElement>(null),
     map = useRef<maplibregl.Map | null>(null);
+  const styledMap = useRef<maplibregl.Map | null>(null);
   const selectRef = useRef(onSelect);
   const markerEntries = useRef<{ marker: maplibregl.Marker; area: string }[]>(
     [],
@@ -73,7 +80,7 @@ export default function CityMap({
         container: container.current,
         style: styleURL,
         center: PLACES[0].center,
-        zoom: 15.2,
+        zoom: city === "delhi" ? 12 : 15.2,
         pitch: small || reduced ? 0 : 54,
         bearing: small || reduced ? 0 : -22,
         maxZoom: 18,
@@ -86,6 +93,7 @@ export default function CityMap({
       });
       const m = instance;
       map.current = m;
+      styledMap.current = null;
       m.addControl(new maplibregl.NavigationControl(), "top-right");
       m.addControl(
         new maplibregl.ScaleControl({ maxWidth: 90 }),
@@ -201,12 +209,14 @@ export default function CityMap({
             },
             layout: { visibility: "none" },
           });
+          styledMap.current = m;
           setReady((v) => v + 1);
           setError("");
         } catch {
           setError(
             "This map style does not support every geographic layer. Camera and signal controls remain available.",
           );
+          styledMap.current = m;
           setReady((v) => v + 1);
         }
       });
@@ -222,6 +232,7 @@ export default function CityMap({
         disposed = true;
         resize.disconnect();
         map.current = null;
+        styledMap.current = null;
         m.remove();
       };
     } catch {
@@ -235,12 +246,13 @@ export default function CityMap({
     return () => {
       disposed = true;
       map.current = null;
+      styledMap.current = null;
       instance?.remove();
     };
-  }, [reduced, styleURL]);
+  }, [reduced, styleURL, PLACES, city]);
   useEffect(() => {
     const m = map.current;
-    if (!m || !ready) return;
+    if (!m || !ready || styledMap.current !== m) return;
     const p = PLACES.find((p) => p.id === camera?.location) || PLACES[0];
     m.flyTo({
       center: p.center,
@@ -255,7 +267,7 @@ export default function CityMap({
           ? 0
           : 850,
     });
-  }, [camera, ready, flat, reduced]);
+  }, [camera, ready, flat, reduced, PLACES]);
   useEffect(() => {
     const narrow = window.matchMedia("(max-width:768px)");
     const sync = () =>
@@ -271,7 +283,7 @@ export default function CityMap({
   useEffect(() => {
     const m = map.current;
     if (!m || !selection) return;
-    const p = placeForArea(selection.item.area);
+    const p = placeForArea(selection.item.area, PLACES);
     const center = selection.item.coordinates || p?.center;
     if (center)
       m.flyTo({
@@ -279,13 +291,13 @@ export default function CityMap({
         zoom: selection.item.coordinates ? 16 : p!.zoom,
         duration: reduced ? 0 : 650,
       });
-  }, [selection, ready, reduced]);
+  }, [selection, ready, reduced, PLACES]);
   useEffect(() => {
     const m = map.current;
-    if (!m || !ready) return;
+    if (!m || !ready || styledMap.current !== m) return;
     const area =
       selection && !selection.item.coordinates
-        ? placeForArea(selection.item.area)
+        ? placeForArea(selection.item.area, PLACES)
         : null;
     for (const id of ["cityhq-context-fill", "cityhq-context-line"])
       if (m.getLayer(id)) {
@@ -307,7 +319,7 @@ export default function CityMap({
         "visibility",
         reduced || flat ? "none" : "visible",
       );
-  }, [layers.boundaries, ready, selection, reduced, flat]);
+  }, [layers.boundaries, ready, selection, reduced, flat, PLACES]);
   useEffect(() => {
     const m = map.current;
     if (!m) return;
@@ -366,6 +378,79 @@ export default function CityMap({
       entry.marker.getElement().style.opacity =
         selection && entry.area !== selection.item.area ? "0.3" : "1";
   }, [selection, events, transit, layers, ready]);
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !ready || styledMap.current !== m) return;
+    if (!network) {
+      for (const id of ["cityhq-metro-routes", "cityhq-metro-stations"])
+        if (m.getLayer(id)) m.setLayoutProperty(id, "visibility", "none");
+      return;
+    }
+    const source = m.getSource("cityhq-metro") as
+      maplibregl.GeoJSONSource | undefined;
+    if (source) source.setData(network);
+    else {
+      m.addSource("cityhq-metro", {
+        type: "geojson",
+        data: network,
+        attribution: "© OpenStreetMap contributors · ODbL 1.0 · Static network",
+      });
+      m.addLayer({
+        id: "cityhq-metro-routes",
+        type: "line",
+        source: "cityhq-metro",
+        filter: ["==", ["geometry-type"], "LineString"],
+        paint: {
+          "line-color": ["coalesce", ["get", "colour"], "#65d8cb"],
+          "line-width": 3,
+          "line-opacity": 0.7,
+        },
+      });
+      m.addLayer({
+        id: "cityhq-metro-stations",
+        type: "circle",
+        source: "cityhq-metro",
+        filter: ["==", ["geometry-type"], "Point"],
+        paint: {
+          "circle-color": "#d9fff7",
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 2, 15, 5],
+          "circle-stroke-color": "#16392f",
+          "circle-stroke-width": 1,
+        },
+      });
+    }
+    for (const id of ["cityhq-metro-routes", "cityhq-metro-stations"])
+      if (m.getLayer(id))
+        m.setLayoutProperty(
+          id,
+          "visibility",
+          layers.metro ? "visible" : "none",
+        );
+  }, [network, ready, layers.metro]);
+  useEffect(() => {
+    const m = map.current;
+    if (
+      !m ||
+      !ready ||
+      styledMap.current !== m ||
+      !m.getLayer("cityhq-metro-stations")
+    )
+      return;
+    const selectStation = (event: maplibregl.MapLayerMouseEvent) => {
+      const feature = event.features?.[0];
+      if (!feature || feature.geometry.type !== "Point") return;
+      const content = document.createElement("div");
+      content.textContent = `${feature.properties?.name || "Station"} · OSM static station · no live service status`;
+      new maplibregl.Popup()
+        .setLngLat(feature.geometry.coordinates as [number, number])
+        .setDOMContent(content)
+        .addTo(m);
+    };
+    m.on("click", "cityhq-metro-stations", selectStation);
+    return () => {
+      m.off("click", "cityhq-metro-stations", selectStation);
+    };
+  }, [ready, network]);
   const p = PLACES.find((p) => p.id === camera?.location) || PLACES[0];
   return (
     <div className="geo-console">
@@ -373,12 +458,12 @@ export default function CityMap({
         <div
           ref={container}
           className="city-map"
-          aria-label="Interactive Melbourne map"
+          aria-label={`Interactive ${config.name} map`}
         />
         {!ready && !error && (
           <div className="map-loading" role="status">
             <span className="dot" />
-            Loading Melbourne geography…
+            Loading {config.name} geography…
           </div>
         )}
         <div className="map-coordinate">
@@ -391,14 +476,29 @@ export default function CityMap({
             </small>
           </span>
         </div>
+        {layers["air-quality"] && (
+          <div className="aq-map-overlay">
+            <strong>{airQuality?.us_aqi ?? "—"} US AQI</strong>
+            <span>
+              {config.name} CAMS grid estimate ·{" "}
+              {airQuality?.metadata.status || "unavailable"}
+            </span>
+            <small>Modelled area context (~45 km), not a local heatmap.</small>
+          </div>
+        )}
+        {network && layers.metro && (
+          <span className="metro-map-credit">
+            OSM STATIC METRO · no live delay feed · {network.as_of.slice(0, 10)}
+          </span>
+        )}
         {layers.weather && (
           <div className="weather-overlay">
             <strong>{weather?.temperature ?? "—"}°C</strong>
             <span>
               {weather?.condition || "No weather observation"}
               <small>
-                Melbourne area · {weather?.metadata.status || "unavailable"} ·
-                no station location supplied
+                {config.name} area · {weather?.metadata.status || "unavailable"}{" "}
+                · no station location supplied
               </small>
             </span>
           </div>
@@ -419,18 +519,20 @@ export default function CityMap({
       </div>
       <div className="map-toolbar">
         <Layers3 size={16} />
-        {LAYERS.map((layer) => (
-          <label key={layer}>
-            <input
-              type="checkbox"
-              checked={layers[layer]}
-              onChange={(e) => toggle(layer, e.target.checked)}
-            />
-            {layer === "boundaries"
-              ? "Area envelopes"
-              : layer[0].toUpperCase() + layer.slice(1)}
-          </label>
-        ))}
+        {LAYERS.filter((layer) => layer !== "metro" || city === "delhi").map(
+          (layer) => (
+            <label key={layer}>
+              <input
+                type="checkbox"
+                checked={layers[layer]}
+                onChange={(e) => toggle(layer, e.target.checked)}
+              />
+              {layer === "boundaries"
+                ? "Area envelopes"
+                : layer[0].toUpperCase() + layer.slice(1)}
+            </label>
+          ),
+        )}
         <button onClick={() => setFlat((v) => !v)} aria-pressed={flat}>
           {flat ? "3D view" : "2D view"}
         </button>

@@ -127,7 +127,7 @@ test("forecast controls and session conversation persist", async ({ page }) => {
 });
 
 test("map controls and provider-coordinate marker", async ({ page }) => {
-  await page.route("**/api/v1/events", async (route) => {
+  await page.route("**/api/v1/events?*", async (route) => {
     const response = await route.fetch();
     const data = await response.json();
     data.items[0].coordinates = [144.9631, -37.8136];
@@ -249,4 +249,97 @@ test("command dialog restores focus, reduced effects and all responsive views", 
       ).toBe(true);
     }
   }
+});
+
+test("two-city transition, AQ standards, static Metro and Operator city actions", async ({
+  page,
+}) => {
+  const runtimeErrors: string[] = [];
+  page.on("pageerror", (error) => runtimeErrors.push(error.message));
+  await page.goto("/");
+  await page.getByRole("button", { name: "Select Delhi", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Select Delhi", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByRole("heading", { name: "Delhi, in focus." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "CITYHQ Operator" }),
+  ).not.toBeVisible();
+  await page
+    .getByRole("button", { name: "Transit intelligence", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Delhi Metro, mapped." }),
+  ).toBeVisible();
+  await page.getByLabel("Search Metro stations").fill("Rajiv");
+  await expect(page.locator(".metro-stations button")).not.toHaveCount(0);
+  await page.locator(".metro-stations button").first().click();
+  await expect(page.locator(".maplibregl-canvas")).toBeVisible();
+  await expect(page.locator(".map-loading")).toBeHidden();
+  // Recreating a ready map must wait for the replacement style before adding Metro.
+  for (const enabled of [true, false]) {
+    await page
+      .getByRole("button", { name: "Reduced effects", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Reduced effects", exact: true }),
+    ).toHaveAttribute("aria-pressed", String(enabled));
+    await expect(page.locator(".maplibregl-canvas")).toBeVisible();
+    await expect(page.locator(".map-loading")).toBeHidden();
+    expect(runtimeErrors).toEqual([]);
+  }
+  await page
+    .getByRole("button", { name: "Air quality intelligence", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Demo air quality." }),
+  ).toBeVisible();
+  await expect(page.locator(".aq-reading")).toContainText("US AQI");
+  await page
+    .getByLabel("Air quality index standard")
+    .selectOption("european_aqi");
+  await expect(page.locator(".aq-reading")).toContainText("European AQI");
+  await page.getByRole("button", { name: "Ask Operator", exact: true }).click();
+  await page
+    .getByLabel("Ask CityHQ", { exact: true })
+    .fill("Show Melbourne transport disruptions.");
+  await page.getByLabel("Send question").click();
+  await expect(
+    page.getByRole("button", { name: "Select Melbourne", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByRole("heading", { name: "Melbourne, in focus." }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Ask Operator", exact: true }).click();
+  await page
+    .getByLabel("Ask CityHQ", { exact: true })
+    .fill("Show Delhi Metro stations.");
+  await page.getByLabel("Send question").click();
+  await expect(
+    page.getByRole("button", { name: "Select Delhi", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Metro", { exact: true })).toBeChecked();
+  await expect(page.getByText(/Delhi Metro static network:/)).toBeVisible();
+  await page.getByRole("button", { name: "Close operator" }).click();
+  for (const width of [1440, 768, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    for (const name of [
+      "Overview",
+      "Air quality intelligence",
+      "Transit intelligence",
+      "Weather intelligence",
+      "System diagnostics",
+    ]) {
+      await page.getByRole("button", { name, exact: true }).click();
+      await expect(page.locator("h1")).toBeVisible();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+    }
+  }
+  expect(runtimeErrors).toEqual([]);
 });

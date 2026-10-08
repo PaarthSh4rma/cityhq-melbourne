@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 from app.cities import city_config
 
-VERSION = "activity-proxy-1.1"
+VERSION = city_config("melbourne")["scoring"]["version"]
 
 
 def total_score(values):
@@ -20,6 +20,9 @@ def activity_score(signals, at=None, city="melbourne"):
     usable = {
         k: v.metadata.status != "unavailable" and not v.metadata.stale for k, v in signals.items()
     }
+    usable["weather"] = (
+        usable["weather"] and weather.temperature is not None and weather.wind_speed is not None
+    )
     usable["transport"] = (
         usable["transport"]
         and config["scoring"]["include_disruptions"]

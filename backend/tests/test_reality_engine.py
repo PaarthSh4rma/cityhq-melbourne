@@ -389,3 +389,18 @@ def test_migration_preserves_legacy_duplicate_records(tmp_path):
             "INSERT INTO activity_features(city_id,timestamp,score,payload) VALUES('delhi','2026-01-01T00:00:00+00:00',21,'{}')"
         )
         assert con.execute("SELECT COUNT(*) FROM activity_features").fetchone()[0] == 2
+
+
+def test_concurrent_prediction_storage_is_idempotent(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from types import SimpleNamespace
+
+    from app.ml import inference
+
+    train(synthetic_data(days=15), output=tmp_path)
+    monkeypatch.setattr(inference, "settings", SimpleNamespace(artifact_dir=str(tmp_path)))
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(lambda _: inference.forecast("ridge", 1), range(8)))
+    assert all(r["available"] for r in results)
+    with Session(db.engine) as session:
+        assert len(session.scalars(select(db.Prediction)).all()) == 1

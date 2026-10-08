@@ -4,104 +4,60 @@
     "name": "Melbourne",
     "country": "AU",
     "timezone": "Australia/Melbourne",
-    "center": [
-      144.9655616,
-      -37.8141705
-    ],
+    "center": [144.9655616, -37.8141705],
     "places": [
       {
         "id": "cbd",
         "label": "CBD",
         "source": "https://www.openstreetmap.org/relation/2383266",
-        "center": [
-          144.9655616,
-          -37.8141705
-        ],
+        "center": [144.9655616, -37.8141705],
         "zoom": 15.2
       },
       {
         "id": "flinders",
         "label": "Flinders Street",
         "source": "https://www.openstreetmap.org/node/4936370201",
-        "center": [
-          144.9664779,
-          -37.8184161
-        ],
+        "center": [144.9664779, -37.8184161],
         "zoom": 16.1
       },
       {
         "id": "southern-cross",
         "label": "Southern Cross",
         "source": "https://www.wikidata.org/wiki/Q801455",
-        "center": [
-          144.9525,
-          -37.8183333333
-        ],
+        "center": [144.9525, -37.8183333333],
         "zoom": 16.0
       },
       {
         "id": "melbourne-park",
         "label": "Melbourne Park",
         "source": "https://www.openstreetmap.org/way/220550128",
-        "center": [
-          144.9790884,
-          -37.8213608
-        ],
+        "center": [144.9790884, -37.8213608],
         "zoom": 15.3,
-        "bounds": [
-          144.9759596,
-          -37.8242045,
-          144.9867639,
-          -37.8184481
-        ]
+        "bounds": [144.9759596, -37.8242045, 144.9867639, -37.8184481]
       },
       {
         "id": "docklands",
         "label": "Docklands",
         "source": "https://www.openstreetmap.org/relation/2397613",
-        "center": [
-          144.9394923,
-          -37.8175423
-        ],
+        "center": [144.9394923, -37.8175423],
         "zoom": 14.3,
-        "bounds": [
-          144.9311288,
-          -37.827023,
-          144.9559906,
-          -37.8096133
-        ]
+        "bounds": [144.9311288, -37.827023, 144.9559906, -37.8096133]
       },
       {
         "id": "southbank",
         "label": "Southbank",
         "source": "https://www.openstreetmap.org/relation/2395850",
-        "center": [
-          144.9640203,
-          -37.8253618
-        ],
+        "center": [144.9640203, -37.8253618],
         "zoom": 15.0,
-        "bounds": [
-          144.946909,
-          -37.831482,
-          144.971423,
-          -37.819245
-        ]
+        "bounds": [144.946909, -37.831482, 144.971423, -37.819245]
       },
       {
         "id": "st-kilda",
         "label": "St Kilda",
         "source": "https://www.openstreetmap.org/relation/2397474",
-        "center": [
-          144.981637,
-          -37.8638261
-        ],
+        "center": [144.981637, -37.8638261],
         "zoom": 14.1,
-        "bounds": [
-          144.970653,
-          -37.876291,
-          144.993262,
-          -37.852189
-        ]
+        "bounds": [144.970653, -37.876291, 144.993262, -37.852189]
       }
     ],
     "providers": {
@@ -148,48 +104,33 @@
     "name": "Delhi",
     "country": "IN",
     "timezone": "Asia/Kolkata",
-    "center": [
-      77.2193123,
-      28.6327062
-    ],
+    "center": [77.2193123, 28.6327062],
     "places": [
       {
         "id": "rajiv-chowk",
         "label": "Rajiv Chowk",
-        "center": [
-          77.2193123,
-          28.6327062
-        ],
+        "center": [77.2193123, 28.6327062],
         "zoom": 15.2,
         "source": "https://www.openstreetmap.org/node/6539894851"
       },
       {
         "id": "kashmere-gate",
         "label": "Kashmere Gate",
-        "center": [
-          77.2282488,
-          28.6674493
-        ],
+        "center": [77.2282488, 28.6674493],
         "zoom": 15.2,
         "source": "https://www.openstreetmap.org/node/268381477"
       },
       {
         "id": "new-delhi",
         "label": "New Delhi",
-        "center": [
-          77.2227421,
-          28.6434826
-        ],
+        "center": [77.2227421, 28.6434826],
         "zoom": 15.2,
         "source": "https://www.openstreetmap.org/node/554257841"
       },
       {
         "id": "central-secretariat",
         "label": "Central Secretariat",
-        "center": [
-          77.2122822,
-          28.6158794
-        ],
+        "center": [77.2122822, 28.6158794],
         "zoom": 15.2,
         "source": "https://www.openstreetmap.org/node/5453646586"
       }

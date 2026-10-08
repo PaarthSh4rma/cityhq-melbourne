@@ -5,6 +5,7 @@ import json
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import Float, Index, String, Text, create_engine, delete, func, select
+from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
 from app.config import settings
@@ -128,6 +129,8 @@ def record_source(source, signal, city="melbourne", latency_ms=None):
     payload = signal.model_dump(mode="json")
     content = {k: v for k, v in payload.items() if k not in ("metadata", "updated_at")}
     content["origin"] = signal.metadata.origin_status
+    content["provider"] = signal.metadata.source
+    content["data_kind"] = signal.metadata.data_kind
     # One unchanged snapshot per hour preserves sampling without request duplicates.
     stamp = utcnow().replace(minute=0, second=0, microsecond=0).isoformat()
     digest = hashlib.sha256(
@@ -138,14 +141,16 @@ def record_source(source, signal, city="melbourne", latency_ms=None):
         if not session.scalar(
             select(table.id).where(table.digest == digest, table.city_id == city)
         ):
-            session.add(
-                table(
+            session.execute(
+                insert(table)
+                .values(
                     city_id=city,
                     timestamp=utcnow().isoformat(),
                     digest=digest,
                     dedup_key=digest,
                     payload=json.dumps(payload),
                 )
+                .on_conflict_do_nothing(index_elements=["city_id", "dedup_key"])
             )
         session.add(
             IngestionRun(
@@ -179,6 +184,7 @@ def record_activity(activity, signals, city="melbourne"):
     usable = {
         k: v.metadata.status != "unavailable" and not v.metadata.stale for k, v in signals.items()
     }
+    usable["transport"] = usable["transport"] and signals["transport"].operational_status_available
     payload = dict(
         activity=activity,
         temperature=signals["weather"].temperature if usable["weather"] else None,
@@ -187,15 +193,16 @@ def record_activity(activity, signals, city="melbourne"):
         us_aqi=signals["air_quality"].us_aqi if usable.get("air_quality") else None,
     )
     with Session(engine) as session:
-        row = session.scalar(
-            select(ActivityFeature).where(
-                ActivityFeature.timestamp == stamp, ActivityFeature.city_id == city
+        session.execute(
+            insert(ActivityFeature)
+            .values(
+                city_id=city, timestamp=stamp, score=activity["score"], payload=json.dumps(payload)
+            )
+            .on_conflict_do_update(
+                index_elements=["city_id", "timestamp"],
+                set_={"score": activity["score"], "payload": json.dumps(payload)},
             )
         )
-        if row is None:
-            row = ActivityFeature(timestamp=stamp, city_id=city)
-            session.add(row)
-        row.score, row.payload = activity["score"], json.dumps(payload)
         session.commit()
 
 
@@ -211,6 +218,7 @@ def history(hours=24, city="melbourne"):
             dict(
                 timestamp=r.timestamp,
                 score=r.score,
+                methodology_version=json.loads(r.payload)["activity"].get("methodology_version"),
                 **{
                     k: v
                     for k, v in json.loads(r.payload).items()
@@ -319,18 +327,17 @@ def record_raw(source, city, provider, payload):
     body = json.dumps(sanitize_raw(payload), sort_keys=True)
     digest = hashlib.sha256((city + source + provider + body).encode()).hexdigest()
     with Session(engine) as session:
-        if not session.scalar(
-            select(RawPayload.id).where(RawPayload.digest == digest, RawPayload.city_id == city)
-        ):
-            session.add(
-                RawPayload(
-                    city_id=city,
-                    source=source,
-                    provider=provider,
-                    timestamp=utcnow().isoformat(),
-                    digest=digest,
-                    dedup_key=digest,
-                    payload=body,
-                )
+        session.execute(
+            insert(RawPayload)
+            .values(
+                city_id=city,
+                source=source,
+                provider=provider,
+                timestamp=utcnow().isoformat(),
+                digest=digest,
+                dedup_key=digest,
+                payload=body,
             )
-            session.commit()
+            .on_conflict_do_nothing(index_elements=["city_id", "dedup_key"])
+        )
+        session.commit()

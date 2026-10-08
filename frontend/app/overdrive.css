@@ -1794,3 +1794,45 @@
   gap: 15px;
   flex-wrap: wrap;
 }
+
+.overdrive .city-selector {
+  flex-direction: row;
+  flex-shrink: 0;
+  margin: 0;
+  width: 190px;
+  padding: 3px;
+  gap: 3px;
+}
+.overdrive .city-selector button {
+  font-size: 9px;
+  padding: 9px 8px;
+  letter-spacing: 0.08em;
+}
+@media (max-width: 1200px) {
+  .overdrive .topbar {
+    flex-wrap: wrap;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .overdrive .topbar-controls {
+    margin-left: auto;
+  }
+}
+@media (max-width: 768px) {
+  .overdrive .city-selector {
+    width: 180px;
+  }
+  .overdrive .topbar > span {
+    white-space: normal;
+  }
+  .overdrive .topbar-controls {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+  .aq-hero {
+    flex-wrap: wrap;
+  }
+  .aq-reading {
+    align-items: flex-start;
+  }
+}

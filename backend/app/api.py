@@ -66,6 +66,7 @@ def export(hours: int = Query(24, ge=1, le=2160), city: CityId = "melbourne"):
             "events",
             "us_aqi",
             "provenance",
+            "methodology_version",
         ],
     )
     writer.writeheader()

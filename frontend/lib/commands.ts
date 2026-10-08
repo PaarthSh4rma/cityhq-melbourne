@@ -3,6 +3,7 @@ export const VIEWS: View[] = [
   "overview",
   "transit",
   "weather",
+  "air-quality",
   "events",
   "forecasting",
   "diagnostics",
@@ -15,6 +16,10 @@ export const LOCATIONS = [
   "docklands",
   "southbank",
   "st-kilda",
+  "rajiv-chowk",
+  "kashmere-gate",
+  "new-delhi",
+  "central-secretariat",
 ] as const;
 export const LAYERS = [
   "events",
@@ -22,6 +27,8 @@ export const LAYERS = [
   "weather",
   "alerts",
   "boundaries",
+  "metro",
+  "air-quality",
 ] as const;
 export type Location = (typeof LOCATIONS)[number];
 export type Layer = (typeof LAYERS)[number];
@@ -32,8 +39,12 @@ export const DEFAULT_LAYERS: Layers = {
   weather: false,
   alerts: false,
   boundaries: false,
+  metro: true,
+  "air-quality": false,
 };
 export type Action =
+  | { type: "switch_city"; city: "melbourne" | "delhi" }
+  | { type: "compare_city_metric"; metric: "us_aqi" }
   | { type: "navigate_dashboard"; view: View }
   | { type: "focus_map_location"; location: Location }
   | { type: "toggle_map_layer"; layer: Layer; enabled: boolean }
@@ -43,6 +54,18 @@ export function validateAction(value: unknown): Action | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const a = value as Record<string, unknown>;
   const keys = Object.keys(a).sort().join(",");
+  if (
+    a.type === "switch_city" &&
+    keys === "city,type" &&
+    ["melbourne", "delhi"].includes(a.city as string)
+  )
+    return a as Action;
+  if (
+    a.type === "compare_city_metric" &&
+    keys === "metric,type" &&
+    a.metric === "us_aqi"
+  )
+    return a as Action;
   if (
     a.type === "navigate_dashboard" &&
     keys === "type,view" &&

@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { RotateCcw, SlidersHorizontal } from "lucide-react";
+import { useCity } from "@/lib/city-context";
 import { request } from "@/lib/api";
 import type { Activity, Forecast } from "@/lib/types";
 export function ScenarioLab({ activity }: { activity: Activity | null }) {
+  const { scope, city } = useCity();
   const [overrides, setOverrides] = useState<Record<string, number>>({});
   const [result, setResult] = useState<{
       after: number;
@@ -16,7 +18,11 @@ export function ScenarioLab({ activity }: { activity: Activity | null }) {
   useEffect(() => () => current.current?.abort(), []);
   const controls = [
     { key: "events", name: "Event listings", max: 40 },
-    { key: "transport", name: "Service notices", max: 25 },
+    {
+      key: "transport",
+      name: "Service notices",
+      max: city === "delhi" ? 0 : 25,
+    },
     { key: "weather", name: "Weather suitability", max: 15 },
   ];
   const values = Object.fromEntries(
@@ -45,7 +51,7 @@ export function ScenarioLab({ activity }: { activity: Activity | null }) {
         after: number;
         label: string;
         before: Activity;
-      }>("/scenario", abort.signal, values);
+      }>(scope("/scenario"), abort.signal, values);
       if (current.current === abort && !abort.signal.aborted) setResult(reply);
     } catch {
       if (!abort.signal.aborted)

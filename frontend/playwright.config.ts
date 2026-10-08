@@ -11,7 +11,7 @@ export default defineConfig({
   webServer: [
     {
       command:
-        "cd ../backend && CORS_ORIGINS=http://127.0.0.1:3115 WEATHER_ADAPTER=demo TRANSPORT_ADAPTER=demo EVENTS_ADAPTER=demo DATABASE_URL=sqlite:////tmp/cityhq-e2e.db venv/bin/alembic upgrade head && CORS_ORIGINS=http://127.0.0.1:3115 WEATHER_ADAPTER=demo TRANSPORT_ADAPTER=demo EVENTS_ADAPTER=demo DATABASE_URL=sqlite:////tmp/cityhq-e2e.db venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8115",
+        "cd ../backend && CORS_ORIGINS=http://127.0.0.1:3115 AIR_QUALITY_ADAPTER=demo DELHI_TRANSPORT_ADAPTER=delhi-metro-static WEATHER_ADAPTER=demo TRANSPORT_ADAPTER=demo EVENTS_ADAPTER=demo DATABASE_URL=sqlite:////tmp/cityhq-e2e.db venv/bin/alembic upgrade head && CORS_ORIGINS=http://127.0.0.1:3115 AIR_QUALITY_ADAPTER=demo DELHI_TRANSPORT_ADAPTER=delhi-metro-static WEATHER_ADAPTER=demo TRANSPORT_ADAPTER=demo EVENTS_ADAPTER=demo DATABASE_URL=sqlite:////tmp/cityhq-e2e.db venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8115",
       url: "http://127.0.0.1:8115/health",
       reuseExistingServer: false,
     },

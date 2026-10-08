@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Command, Search, X } from "lucide-react";
-import { PLACES } from "@/lib/geography";
+import { useCity } from "@/lib/city-context";
 import { VIEWS, type Action } from "@/lib/commands";
 import type { Meta } from "@/lib/types";
 function Dialog({
@@ -47,8 +47,21 @@ export function CommandPalette({
   onClose: () => void;
   onAction: (action: Action) => void;
 }) {
+  const { places: PLACES } = useCity();
   const [query, setQuery] = useState("");
   const commands: { label: string; action: Action }[] = [
+    {
+      label: "Switch to Melbourne",
+      action: { type: "switch_city", city: "melbourne" },
+    },
+    {
+      label: "Switch to Delhi",
+      action: { type: "switch_city", city: "delhi" },
+    },
+    {
+      label: "Compare city air quality",
+      action: { type: "compare_city_metric", metric: "us_aqi" },
+    },
     ...VIEWS.map((view) => ({
       label: `Open ${view}`,
       action: { type: "navigate_dashboard" as const, view },

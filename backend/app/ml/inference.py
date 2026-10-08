@@ -98,7 +98,7 @@ def forecast(model="selected", horizon=1, city="melbourne"):
     )
     import hashlib
 
-    from sqlalchemy import select
+    from sqlalchemy.dialects.sqlite import insert
     from sqlalchemy.orm import Session
 
     from app.persistence import Prediction, engine, utcnow
@@ -107,17 +107,16 @@ def forecast(model="selected", horizon=1, city="melbourne"):
         json.dumps([city, meta["dataset_sha256"], selected, predictions], sort_keys=True).encode()
     ).hexdigest()
     with Session(engine) as session:
-        if not session.scalar(
-            select(Prediction.id).where(Prediction.digest == digest, Prediction.city_id == city)
-        ):
-            session.add(
-                Prediction(
-                    city_id=city,
-                    timestamp=utcnow().isoformat(),
-                    digest=digest,
-                    dedup_key=digest,
-                    payload=json.dumps(result),
-                )
+        session.execute(
+            insert(Prediction)
+            .values(
+                city_id=city,
+                timestamp=utcnow().isoformat(),
+                digest=digest,
+                dedup_key=digest,
+                payload=json.dumps(result),
             )
-            session.commit()
+            .on_conflict_do_nothing(index_elements=["city_id", "dedup_key"])
+        )
+        session.commit()
     return result

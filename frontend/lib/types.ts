@@ -1,6 +1,18 @@
 export type Meta = {
+  city_id?: "melbourne" | "delhi";
+  provider?: string;
+  data_kind?: string;
+  geographic_precision?: string;
+  units?: Record<string, string>;
+  last_attempt_at?: string | null;
+  latency_ms?: number | null;
+  cache_age_seconds?: number | null;
+  error_code?: string | null;
+  authentication?: string;
+  rate_limit?: string | null;
+  attribution?: string | null;
   source: string;
-  status: "live" | "cached" | "demo" | "unavailable";
+  status: "live" | "cached" | "demo" | "stale" | "unavailable";
   origin_status: string;
   observed_at: string | null;
   fetched_at: string | null;
@@ -11,6 +23,12 @@ export type Meta = {
   error: string | null;
 };
 export type Item = {
+  id?: string;
+  url?: string;
+  start_at?: string;
+  end_at?: string;
+  disruption_type?: string;
+  publication_status?: string;
   title: string;
   area: string;
   mode?: string;
@@ -26,6 +44,14 @@ export type Item = {
 };
 export type Weather = {
   metadata: Meta;
+  apparent_temperature?: number | null;
+  precipitation?: number | null;
+  wind_direction?: number | null;
+  hourly?: {
+    timestamp: string;
+    temperature: number | null;
+    rain_probability: number | null;
+  }[];
   temperature: number | null;
   condition: string | null;
   description: string | null;
@@ -34,6 +60,8 @@ export type Weather = {
   forecast: { date: string; minimum: number; maximum: number }[];
 };
 export type Transit = {
+  network?: MetroNetwork | null;
+  operational_status_available?: boolean;
   metadata: Meta;
   status: string;
   disruption_count: number;
@@ -43,6 +71,13 @@ export type Transit = {
 };
 export type Events = { metadata: Meta; event_count: number; items: Item[] };
 export type Activity = {
+  city_id?: string;
+  maximum?: number;
+  environmental_risk?: {
+    standard: string;
+    value: number | null;
+    data_kind: string;
+  } | null;
   score: number | null;
   category: string;
   coverage: number;
@@ -61,8 +96,10 @@ export type Activity = {
 export type History = {
   items: {
     timestamp: string;
+    methodology_version?: string;
     score: number | null;
     temperature: number | null;
+    us_aqi?: number | null;
     disruptions: number | null;
     events: number | null;
     provenance: Record<string, Meta>;
@@ -128,11 +165,22 @@ export type Reply = {
   supporting_data?: Record<string, unknown>;
 };
 export type View =
-  "overview" | "transit" | "weather" | "events" | "forecasting" | "diagnostics";
+  | "overview"
+  | "transit"
+  | "weather"
+  | "air-quality"
+  | "events"
+  | "forecasting"
+  | "diagnostics";
 
 export type Timeline = {
   at: string;
-  signals: { weather: Weather; transport: Transit; events: Events };
+  signals: {
+    weather: Weather;
+    air_quality?: AirQuality;
+    transport: Transit;
+    events: Events;
+  };
   activity: Activity;
   captures: Record<string, { timestamp: string; age_seconds: number } | null>;
   gaps: string[];
@@ -153,4 +201,51 @@ export type Period = {
     usable_hours: number;
     mean_score: number | null;
   }[];
+};
+
+export type AirQuality = {
+  metadata: Meta;
+  pm2_5: number | null;
+  pm10: number | null;
+  nitrogen_dioxide: number | null;
+  ozone: number | null;
+  us_aqi: number | null;
+  european_aqi: number | null;
+  hourly: {
+    timestamp: string;
+    pm2_5: number | null;
+    us_aqi: number | null;
+    european_aqi: number | null;
+  }[];
+  standards: Record<string, string>;
+};
+export type MetroNetwork = {
+  type: "FeatureCollection";
+  features: import("geojson").Feature[];
+  stations: {
+    id: string;
+    name: string;
+    coordinates: [number, number];
+    source: string;
+  }[];
+  lines: { id: string; name: string; colour: string; source: string }[];
+  as_of: string;
+  attribution: string;
+  limitations: string[];
+};
+export type AirComparison = {
+  standard: string;
+  comparable: boolean;
+  higher_city: string | null;
+  difference: number | null;
+  items: Record<
+    string,
+    {
+      city_id: string;
+      value: number | null;
+      pm2_5: number | null;
+      metadata: Meta;
+    }
+  >;
+  limitations: string[];
 };

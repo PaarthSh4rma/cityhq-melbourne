@@ -220,9 +220,11 @@ class Ingestion:
             bool(meta.error)
             or (meta.cache_age_seconds or 0) > ttl
             or (
-                meta.data_kind != "static"
-                and meta.origin_status == "live"
-                and (meta.age_seconds or 0) > max(3600, ttl * 2)
+                meta.origin_status == "live"
+                and (meta.age_seconds or 0)
+                > city_config(meta.city_id)["maximum_source_age_seconds"].get(
+                    meta.source_id, max(3600, ttl * 2)
+                )
             )
         )
         if meta.origin_status == "live":

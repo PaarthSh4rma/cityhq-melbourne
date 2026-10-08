@@ -1,4 +1,5 @@
 "use client";
+import { useCity } from "@/lib/city-context";
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import {
@@ -20,12 +21,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { melbourneTime } from "@/lib/api";
+
 import { usePoll } from "@/lib/use-poll";
 import { gappedHistory } from "@/lib/history";
 import { placeForArea } from "@/lib/geography";
 import type { Layers, Layer, Location } from "@/lib/commands";
 import type {
+  AirQuality,
   Activity,
   Comparison,
   Diagnostics,
@@ -48,6 +50,7 @@ const CityMap = dynamic(() => import("./city-map"), {
   ),
 });
 export default function CommandCentre({
+  airQuality,
   weather,
   transit,
   events,
@@ -67,6 +70,7 @@ export default function CommandCentre({
   compareNonce,
   sourceErrors,
 }: {
+  airQuality: AirQuality | null;
   weather: Weather | null;
   transit: Transit | null;
   events: Events | null;
@@ -86,6 +90,7 @@ export default function CommandCentre({
   compareNonce: number;
   sourceErrors: Record<string, string | null>;
 }) {
+  const { config, places, formatTime: melbourneTime } = useCity();
   const [selected, setSelected] = useState<MapSelection | null>(null),
     [at, setAt] = useState<string | null>(null),
     [inputTime, setInputTime] = useState(""),
@@ -105,6 +110,7 @@ export default function CommandCentre({
     60000,
   );
   // Historical mode replaces every command-centre signal, including its map. Never retain live values while loading.
+  const aq = at ? capture.data?.signals.air_quality || null : airQuality;
   const w = at ? capture.data?.signals.weather || null : weather;
   const t = at ? capture.data?.signals.transport || null : transit;
   const e = at ? capture.data?.signals.events || null : events;
@@ -117,7 +123,7 @@ export default function CommandCentre({
     () => (t?.items || []).filter((i) => area === "all" || i.area === area),
     [t, area],
   );
-  const context = selected ? placeForArea(selected.item.area) : null;
+  const context = selected ? placeForArea(selected.item.area, places) : null;
   const related = selected
     ? [
         ...eventItems.map((item) => ({ item, kind: "events" as const })),
@@ -194,7 +200,7 @@ export default function CommandCentre({
           {
             label: "Activity proxy",
             value: a?.score ?? "—",
-            unit: "/ 100",
+            unit: `/ ${a?.maximum || (config.id === "delhi" ? 75 : 100)}`,
             detail: a
               ? `${a.category} · ${Math.round(a.coverage * 100)}% coverage`
               : "No available index",
@@ -202,13 +208,23 @@ export default function CommandCentre({
             color: "cyan",
           },
           {
-            label: "Service notices",
+            label:
+              t?.operational_status_available === false
+                ? "Metro network"
+                : "Service notices",
             value:
-              t?.metadata.status === "unavailable"
+              t?.metadata.status === "unavailable" ||
+              t?.operational_status_available === false
                 ? "—"
                 : (t?.disruption_count ?? "—"),
-            unit: "notices",
-            detail: "Not passenger congestion",
+            unit:
+              t?.operational_status_available === false
+                ? "live status unknown"
+                : "notices",
+            detail:
+              t?.operational_status_available === false
+                ? "Static map · live service status unknown"
+                : "Not passenger congestion",
             status: t?.metadata.stale
               ? "STALE"
               : t?.metadata.origin_status === "demo"
@@ -262,7 +278,7 @@ export default function CommandCentre({
           <div className="panel-heading">
             <div>
               <span className="eyebrow">GEOSPATIAL INTELLIGENCE</span>
-              <h2>Melbourne, in focus.</h2>
+              <h2>{config.name}, in focus.</h2>
             </div>
             <span className="map-mode">
               <Crosshair size={14} />{" "}
@@ -273,6 +289,8 @@ export default function CommandCentre({
             events={eventItems}
             transit={transitItems}
             weather={w}
+            airQuality={aq}
+            network={t?.network}
             layers={layers}
             onLayer={onLayer}
             camera={camera}
@@ -422,7 +440,7 @@ export default function CommandCentre({
               {Object.entries(
                 at
                   ? capture.data?.signals || {}
-                  : { weather: w, transport: t, events: e },
+                  : { weather: w, air_quality: aq, transport: t, events: e },
               ).map(([name, signal]) => (
                 <div className="data-row" key={name}>
                   <span>{name}</span>

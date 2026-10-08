@@ -1,7 +1,10 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { request } from "./api";
-export function usePoll<T>(path: string | null, interval: number) {
+import { useCity } from "./city-context";
+export function usePoll<T>(inputPath: string | null, interval: number) {
+  const { scope } = useCity();
+  const path = inputPath ? scope(inputPath) : null;
   const [result, setResult] = useState<{
     path: string;
     data: T;

@@ -1,4 +1,11 @@
 "use client";
+import {
+  CityContext,
+  cityValue,
+  useCity,
+  type CityId,
+  type InitialMessage,
+} from "@/lib/city-context";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import {
@@ -32,8 +39,9 @@ import {
 } from "recharts";
 import { usePoll } from "@/lib/use-poll";
 import { gappedHistory } from "@/lib/history";
-import { API, melbourneTime } from "@/lib/api";
+import { API } from "@/lib/api";
 import type {
+  AirQuality,
   Activity,
   Diagnostics,
   Events,
@@ -45,6 +53,7 @@ import type {
   View,
   Weather,
 } from "@/lib/types";
+import { AirQualityWorkspace, MetroExplorer } from "./reality-intelligence";
 import Operator from "./operator";
 import CommandCentre from "./command-centre";
 import { BootSequence, CommandPalette } from "./workspace-controls";
@@ -58,6 +67,7 @@ const NAV = [
   { id: "overview", label: "Overview", icon: Compass },
   { id: "transit", label: "Transit intelligence", icon: TrainFront },
   { id: "weather", label: "Weather intelligence", icon: CloudSun },
+  { id: "air-quality", label: "Air quality intelligence", icon: Wind },
   { id: "events", label: "Event intelligence", icon: MapPin },
   { id: "forecasting", label: "Forecasting lab", icon: FlaskConical },
   { id: "diagnostics", label: "System diagnostics", icon: Database },
@@ -65,7 +75,7 @@ const NAV = [
 const TITLES: Record<View, [string, string]> = {
   overview: [
     "The city, in perspective.",
-    "An operational view of Melbourne’s urban signals.",
+    "An operational view of your city’s urban signals.",
   ],
   transit: [
     "Transit intelligence.",
@@ -74,6 +84,10 @@ const TITLES: Record<View, [string, string]> = {
   weather: [
     "Weather intelligence.",
     "Conditions shaping the city, with transparent source coverage.",
+  ],
+  "air-quality": [
+    "The air, made visible.",
+    "Model estimates, explicit index standards and city comparisons.",
   ],
   events: [
     "The city’s calendar.",
@@ -97,6 +111,7 @@ function Badge({ meta }: { meta?: Meta }) {
   );
 }
 function Freshness({ meta }: { meta?: Meta }) {
+  const { formatTime: melbourneTime } = useCity();
   return (
     <div className="freshness">
       <Badge meta={meta} />
@@ -116,12 +131,13 @@ function Empty({ children }: { children: React.ReactNode }) {
   );
 }
 function Clock() {
+  const { config } = useCity();
   const [clock, setClock] = useState("Synchronizing clock");
   useEffect(() => {
     const tick = () =>
       setClock(
         new Date().toLocaleString("en-AU", {
-          timeZone: "Australia/Melbourne",
+          timeZone: config.timezone,
           weekday: "short",
           day: "2-digit",
           month: "short",
@@ -133,15 +149,16 @@ function Clock() {
     tick();
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [config.timezone]);
   return (
     <div className="clock">
-      <span>MELBOURNE · LOCAL TIME</span>
+      <span>{config.name.toUpperCase()} · LOCAL TIME</span>
       <strong>{clock}</strong>
     </div>
   );
 }
 function Notices({ items }: { items: Item[] }) {
+  const { formatTime } = useCity();
   return items.length ? (
     <div className="notices">
       {items.map((item, i) => (
@@ -161,6 +178,27 @@ function Notices({ items }: { items: Item[] }) {
             <span className="badge">{item.severity || "unknown"}</span>
           </summary>
           <p>{item.description || "No additional details supplied."}</p>
+          {(item.start_at || item.end_at) && (
+            <p className="caption">
+              Starts {formatTime(item.start_at)} · ends{" "}
+              {formatTime(item.end_at)}
+            </p>
+          )}
+          {(item.disruption_type || item.publication_status) && (
+            <p className="caption">
+              {item.disruption_type} · {item.publication_status}
+            </p>
+          )}
+          {item.url?.startsWith("https://") && (
+            <a
+              className="text-button"
+              href={item.url}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Provider notice ↗
+            </a>
+          )}
           <p className="caption">
             Routes: {item.routes?.join(", ") || "Not supplied"} · Location:{" "}
             {item.precision || "No reliable coordinates"}
@@ -176,6 +214,7 @@ function Notices({ items }: { items: Item[] }) {
   );
 }
 function Trend({ data, signal }: { data: History | null; signal: string }) {
+  const { formatTime: melbourneTime, config } = useCity();
   return (data?.items.length || 0) >= 2 ? (
     <div
       className="chart"
@@ -200,7 +239,7 @@ function Trend({ data, signal }: { data: History | null; signal: string }) {
             dataKey="timestamp"
             tickFormatter={(v) =>
               new Date(v).toLocaleTimeString("en-AU", {
-                timeZone: "Australia/Melbourne",
+                timeZone: config.timezone,
                 hour: "2-digit",
               })
             }
@@ -242,19 +281,71 @@ function Trend({ data, signal }: { data: History | null; signal: string }) {
   );
 }
 export default function Dashboard() {
-  const [view, setView] = useState<View>("overview");
-  const [operator, setOperator] = useState(false);
+  const [workspace, setWorkspace] = useState<{
+    city: CityId;
+    actions: Action[];
+    initialMessage?: InitialMessage;
+  }>({ city: "melbourne", actions: [] });
+  const value = {
+    ...cityValue(workspace.city),
+    switchCity: (
+      city: CityId,
+      actions: Action[] = [],
+      initialMessage?: InitialMessage,
+    ) => setWorkspace({ city, actions, initialMessage }),
+    initialMessage: workspace.initialMessage,
+  };
+  return (
+    <CityContext.Provider value={value}>
+      <CityWorkspace key={workspace.city} initialActions={workspace.actions} />
+    </CityContext.Provider>
+  );
+}
+function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
+  const {
+    city,
+    config,
+    places,
+    scope,
+    switchCity,
+    initialMessage,
+    formatTime: melbourneTime,
+  } = useCity();
+  const initialView = initialActions.findLast(
+    (a) => a.type === "navigate_dashboard",
+  );
+  const initialFocus = initialActions.findLast(
+    (a) => a.type === "focus_map_location",
+  );
+  const initialRange = initialActions.findLast(
+    (a) => a.type === "select_time_range",
+  );
+  const [view, setView] = useState<View>(
+    initialView?.view ||
+      (initialActions.some((a) => a.type === "compare_city_metric")
+        ? "air-quality"
+        : "overview"),
+  );
+  const [operator, setOperator] = useState(!!initialMessage);
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState("all");
   const [area, setArea] = useState("all");
-  const [hours, setHours] = useState(24);
+  const [hours, setHours] = useState<number>(initialRange?.hours || 24);
   const [signal, setSignal] = useState("score");
   const [palette, setPalette] = useState(false);
   const [reduced, setReduced] = useState(false);
   const [replay, setReplay] = useState(0);
-  const [layers, setLayers] = useState(DEFAULT_LAYERS);
+  const [layers, setLayers] = useState(() =>
+    initialActions.reduce(
+      (layers, a) =>
+        a.type === "toggle_map_layer"
+          ? { ...layers, [a.layer]: a.enabled }
+          : layers,
+      DEFAULT_LAYERS,
+    ),
+  );
   const [camera, setCamera] = useState<{ location: Location; nonce: number }>({
-    location: "cbd",
+    location: initialFocus?.location || places[0].id,
     nonce: 0,
   });
   const [compareNonce, setCompareNonce] = useState(0);
@@ -290,7 +381,9 @@ export default function Dashboard() {
     setCamera((v) => ({ location, nonce: v.nonce + 1 }));
   }
   function executeAction(action: Action) {
-    if (action.type === "navigate_dashboard") navigate(action.view);
+    if (action.type === "switch_city") switchCity(action.city);
+    else if (action.type === "compare_city_metric") navigate("air-quality");
+    else if (action.type === "navigate_dashboard") navigate(action.view);
     else if (action.type === "focus_map_location") {
       navigate("overview");
       focus(action.location);
@@ -303,8 +396,23 @@ export default function Dashboard() {
       setCompareNonce((v) => v + 1);
     }
   }
+  function executeActions(actions: Action[], message?: InitialMessage) {
+    const switchAction = actions.find((a) => a.type === "switch_city");
+    if (switchAction && switchAction.city !== city) {
+      const next = actions.filter((a) => a.type !== "switch_city");
+      const target = next.findLast((a) => a.type === "navigate_dashboard");
+      navigate(
+        target?.view ||
+          (next.some((a) => a.type === "compare_city_metric")
+            ? "air-quality"
+            : "overview"),
+      );
+      switchCity(switchAction.city, next, message);
+    } else actions.forEach(executeAction);
+  }
   const [model, setModel] = useState("selected");
   const [horizon, setHorizon] = useState(1);
+  const airQuality = usePoll<AirQuality>("/air-quality", 3600000);
   const weather = usePoll<Weather>("/weather", 600000);
   const transit = usePoll<Transit>("/transport", 120000);
   const events = usePoll<Events>("/events", 1800000);
@@ -331,6 +439,7 @@ export default function Dashboard() {
     window.location.hash = next;
   }
   function refresh() {
+    airQuality.refresh();
     weather.refresh();
     transit.refresh();
     events.refresh();
@@ -340,11 +449,17 @@ export default function Dashboard() {
     diagnostics.refresh();
   }
   const sources = [
+    {
+      name: "Air quality",
+      meta: airQuality.data?.metadata,
+      error: airQuality.error,
+    },
     { name: "Weather", meta: weather.data?.metadata, error: weather.error },
     { name: "Transit", meta: transit.data?.metadata, error: transit.error },
     { name: "Events", meta: events.data?.metadata, error: events.error },
   ];
   const errors = [
+    airQuality.error,
     weather.error,
     transit.error,
     events.error,
@@ -412,7 +527,7 @@ export default function Dashboard() {
               <Command size={25} />
             </div>
             <div>
-              CITYHQ<span>MELBOURNE</span>
+              CITYHQ<span>{config.name.toUpperCase()}</span>
             </div>
             <span className="version">01</span>
           </a>
@@ -460,14 +575,33 @@ export default function Dashboard() {
               </span>
               <ArrowUpRight size={17} />
             </button>
-            <p className="sidebar-foot">37.8136° S &nbsp; 144.9631° E</p>
+            <p className="sidebar-foot">
+              {config.center[1].toFixed(4)}° / {config.center[0].toFixed(4)}°
+            </p>
           </div>
         </aside>
         <div className="main-shell">
           <header className="topbar">
+            <div
+              className="city-selector"
+              role="group"
+              aria-label="Select city"
+            >
+              {(["melbourne", "delhi"] as CityId[]).map((id) => (
+                <button
+                  key={id}
+                  aria-label={`Select ${id === "melbourne" ? "Melbourne" : "Delhi"}`}
+                  aria-pressed={city === id}
+                  onClick={() => switchCity(id)}
+                >
+                  {id.toUpperCase()}
+                </button>
+              ))}
+            </div>
+
             <span>
-              <span className="dot" /> MELBOURNE, AUSTRALIA{" "}
-              <span className="separator">/</span>{" "}
+              <span className="dot" /> {config.name.toUpperCase()},{" "}
+              {config.country} <span className="separator">/</span>{" "}
               <b>{NAV.find((n) => n.id === view)?.label}</b>
             </span>
             <div className="topbar-controls">
@@ -545,7 +679,7 @@ export default function Dashboard() {
                     value={area}
                     onChange={(e) => setArea(e.target.value)}
                   >
-                    <option value="all">All Melbourne</option>
+                    <option value="all">All {config.name}</option>
                     {areas.map((a) => (
                       <option key={a}>{a}</option>
                     ))}
@@ -555,6 +689,7 @@ export default function Dashboard() {
             </div>
             {view === "overview" && (
               <CommandCentre
+                airQuality={airQuality.data}
                 weather={weather.data}
                 transit={transit.data}
                 events={events.data}
@@ -575,13 +710,23 @@ export default function Dashboard() {
                 area={area}
                 compareNonce={compareNonce}
                 sourceErrors={{
+                  air_quality: airQuality.error,
                   weather: weather.error,
                   transport: transit.error,
                   events: events.error,
                 }}
               />
             )}
-            {view === "transit" && (
+            {view === "air-quality" && (
+              <AirQualityWorkspace
+                data={airQuality.data}
+                error={airQuality.error}
+              />
+            )}
+            {view === "transit" && city === "delhi" && (
+              <MetroExplorer transit={transit.data} />
+            )}
+            {view === "transit" && city === "melbourne" && (
               <>
                 <div className="filters">
                   <label className="search">
@@ -625,13 +770,19 @@ export default function Dashboard() {
               <>
                 <section className="panel weather-hero">
                   <div>
-                    <span className="eyebrow">MELBOURNE CONDITIONS</span>
+                    <span className="eyebrow">
+                      {config.name.toUpperCase()} CONDITIONS
+                    </span>
                     <div className="weather-temperature">
                       {w?.temperature ?? "—"}
                       <span>°C</span>
                     </div>
                     <h2>{w?.condition || "No current observation"}</h2>
                     <Freshness meta={w?.metadata} />
+                    <p className="caption">
+                      {w?.metadata.data_kind} ·{" "}
+                      {w?.metadata.geographic_precision}
+                    </p>
                   </div>
                   <CloudSun size={100} strokeWidth={1} />
                   <div className="weather-details">
@@ -641,6 +792,18 @@ export default function Dashboard() {
                     </p>
                     <p>
                       Relative humidity <strong>{w?.humidity ?? "—"}%</strong>
+                    </p>
+                    <p>
+                      Feels like{" "}
+                      <strong>{w?.apparent_temperature ?? "—"}°C</strong>
+                    </p>
+                    <p>
+                      Precipitation{" "}
+                      <strong>{w?.precipitation ?? "—"} mm</strong>
+                    </p>
+                    <p>
+                      Wind direction{" "}
+                      <strong>{w?.wind_direction ?? "—"}°</strong>
                     </p>
                     <p>
                       Activity factor{" "}
@@ -672,7 +835,7 @@ export default function Dashboard() {
                     )}
                   </section>
                   <section className="panel">
-                    <h2>Observed temperature history</h2>
+                    <h2>Captured temperature history</h2>
                     <Trend data={history.data} signal="temperature" />
                   </section>
                 </div>
@@ -724,6 +887,16 @@ export default function Dashboard() {
                             <p>
                               {event.venue} · {event.area}
                             </p>
+                            {event.url?.startsWith("https://") && (
+                              <a
+                                className="text-button"
+                                href={event.url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Event details ↗
+                              </a>
+                            )}
                           </div>
                         </article>
                       ))
@@ -748,7 +921,13 @@ export default function Dashboard() {
                       Counts describe listings, not audience size or crowd
                       density.
                     </p>
-                    <CityMap events={eventItems} transit={[]} />
+                    <CityMap
+                      events={eventItems}
+                      transit={[]}
+                      airQuality={airQuality.data}
+                      weather={w}
+                      network={transit.data?.network}
+                    />
                   </section>
                 </div>
               </>
@@ -816,7 +995,7 @@ export default function Dashboard() {
                             stroke="#8d9eae"
                             tickFormatter={(v) =>
                               new Date(v).toLocaleTimeString("en-AU", {
-                                timeZone: "Australia/Melbourne",
+                                timeZone: config.timezone,
                                 hour: "2-digit",
                               })
                             }
@@ -952,7 +1131,7 @@ export default function Dashboard() {
                           {f.metadata.dataset_sha256 ?? "not supplied"}
                         </p>
                         <p className="caption">
-                          Forecast dates are shown in Australia/Melbourne.
+                          Forecast dates are shown in {config.timezone}.
                           Synthetic inference follows the stored 2025 research
                           timeline, separate from current weather.
                         </p>
@@ -977,11 +1156,17 @@ export default function Dashboard() {
                         value={signal}
                         onChange={(e) => setSignal(e.target.value)}
                       >
-                        {["score", "temperature", "disruptions", "events"].map(
-                          (s) => (
-                            <option key={s}>{s}</option>
-                          ),
-                        )}
+                        {[
+                          "score",
+                          "temperature",
+                          "disruptions",
+                          "events",
+                          "us_aqi",
+                        ].map((s) => (
+                          <option key={s} value={s}>
+                            {s === "us_aqi" ? "US AQI · modelled" : s}
+                          </option>
+                        ))}
                       </select>
                       <select
                         aria-label="History time range"
@@ -994,7 +1179,7 @@ export default function Dashboard() {
                       </select>
                       <a
                         className="button"
-                        href={`${API}/api/v1/history.csv?hours=${hours}`}
+                        href={`${API}/api/v1${scope(`/history.csv?hours=${hours}`)}`}
                       >
                         <ArrowDownToLine size={15} /> CSV
                       </a>
@@ -1038,8 +1223,9 @@ export default function Dashboard() {
                     </strong>
                   </div>
                   <p className="caption">
-                    Weather 10 min · Transit 2 min · Events 30 min. API
-                    reachability does not imply live source availability.
+                    Weather 10 min · Air quality 60 min · PTV 2 min / static
+                    Metro 24 h · Events 30 min. API reachability does not imply
+                    live source availability.
                   </p>
                 </section>
                 <section className="panel">
@@ -1066,8 +1252,11 @@ export default function Dashboard() {
                         <Badge meta={meta} />
                       </div>
                       <div className="data-row">
-                        <span>Provider</span>
-                        <strong>{meta.source}</strong>
+                        <span>Provider / city / kind</span>
+                        <strong>
+                          {meta.provider || meta.source} / {meta.city_id} /{" "}
+                          {meta.data_kind}
+                        </strong>
                       </div>
                       <div className="data-row">
                         <span>Observed</span>
@@ -1085,6 +1274,26 @@ export default function Dashboard() {
                             : `${Math.round(meta.age_seconds / 60)} min`}
                         </strong>
                       </div>
+                      <div className="data-row">
+                        <span>Last attempt</span>
+                        <strong>{melbourneTime(meta.last_attempt_at)}</strong>
+                      </div>
+                      <div className="data-row">
+                        <span>Latency / cache age</span>
+                        <strong>
+                          {meta.latency_ms ?? "—"} ms /{" "}
+                          {meta.cache_age_seconds == null
+                            ? "—"
+                            : Math.round(meta.cache_age_seconds / 60)}{" "}
+                          min
+                        </strong>
+                      </div>
+                      <p className="caption">
+                        Authentication: {meta.authentication} ·{" "}
+                        {meta.error_code || "No current error"}
+                      </p>
+                      <p className="caption">{meta.rate_limit}</p>
+                      <p className="caption">{meta.geographic_precision}</p>
                       {meta.error && <p className="warning">{meta.error}</p>}
                       {meta.limitations.map((l) => (
                         <p className="caption" key={l}>
@@ -1121,13 +1330,15 @@ export default function Dashboard() {
                 <ShieldCheck size={14} /> Designed for transparent city
                 intelligence
               </span>
-              <span>CITYHQ · MELBOURNE / 01</span>
+              <span>CITYHQ · {config.name.toUpperCase()} / 02</span>
             </footer>
           </main>
         </div>
         <Operator
+          initialMessage={initialMessage}
           open={operator}
           navigate={navigate}
+          onActions={executeActions}
           onAction={executeAction}
           onClose={() => setOperator(false)}
         />

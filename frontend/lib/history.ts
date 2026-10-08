@@ -1,16 +1,20 @@
 import type { History } from "./types";
 type Point = History["items"][number];
 const signature = (p: Point) =>
-  JSON.stringify(
+  JSON.stringify([
+    p.methodology_version,
     Object.entries(p.provenance || {})
       .sort()
       .map(([name, m]) => [
         name,
+        m.source,
+        m.data_kind,
+        m.city_id,
         m.origin_status,
         m.stale,
         m.status === "unavailable",
       ]),
-  );
+  ]);
 // Break the chart across missing hours or changed provenance. No values are filled.
 export function gappedHistory(items: Point[]): Point[] {
   const result: Point[] = [];
@@ -31,6 +35,7 @@ export function gappedHistory(items: Point[]): Point[] {
         temperature: null,
         disruptions: null,
         events: null,
+        us_aqi: null,
       });
     }
     result.push(point);

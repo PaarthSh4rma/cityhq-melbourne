@@ -1,7 +1,8 @@
 "use client";
+import { useCity, type InitialMessage } from "@/lib/city-context";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Sparkles, X } from "lucide-react";
-import { melbourneTime, request } from "@/lib/api";
+import { request } from "@/lib/api";
 import { validateAction, VIEWS, type Action } from "@/lib/commands";
 import type { Reply, View } from "@/lib/types";
 export function OperatorCore({ state = "standby" }: { state?: string }) {
@@ -26,16 +27,21 @@ export default function Operator({
   navigate,
   onClose,
   onAction,
+  onActions,
+  initialMessage,
   open = true,
 }: {
   navigate: (view: View) => void;
   onClose: () => void;
   onAction?: (action: Action) => void;
+  onActions?: (actions: Action[], message?: InitialMessage) => void;
+  initialMessage?: InitialMessage;
   open?: boolean;
 }) {
+  const { city, config, formatTime: melbourneTime } = useCity();
   const [messages, setMessages] = useState<
     { question: string; reply?: Reply; error?: string; actions?: Action[] }[]
-  >([]);
+  >(initialMessage ? [initialMessage] : []);
   const [input, setInput] = useState(""),
     [busy, setBusy] = useState(false),
     [state, setState] = useState("standby");
@@ -64,6 +70,7 @@ export default function Operator({
     try {
       const reply = await request<Reply>("/operator", abort.signal, {
         question,
+        city,
       });
       const actions = (Array.isArray(reply.actions) ? reply.actions : [])
         .map(validateAction)
@@ -71,7 +78,8 @@ export default function Operator({
       setMessages((m) =>
         m.map((v, i) => (i === m.length - 1 ? { ...v, reply, actions } : v)),
       );
-      actions.forEach((a) => onAction?.(a));
+      if (onActions) onActions(actions, { question, reply, actions });
+      else actions.forEach((a) => onAction?.(a));
       setState("response ready");
     } catch {
       setMessages((m) =>
@@ -131,9 +139,13 @@ export default function Operator({
       </p>
       <div className="suggestions">
         {[
-          "Show Melbourne Park",
+          city === "melbourne"
+            ? "Show Melbourne Park"
+            : "Show Delhi Metro stations",
           "Compare last six hours",
-          "What’s happening in Melbourne right now?",
+          `What’s happening in ${config.name} right now?`,
+          `What is the AQI in ${config.name}?`,
+          "Which city has worse air quality right now?",
           "Why is the activity score elevated?",
           "Which sources are unavailable?",
           "What is the forecast based on?",

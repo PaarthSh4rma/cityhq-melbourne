@@ -51,7 +51,11 @@ def snapshot(at, city="melbourne"):
                 if signal.metadata.observed_at
                 else None
             )
-            signal.metadata.stale = age > signal.metadata.ttl_seconds
+            signal.metadata.stale = age > signal.metadata.ttl_seconds or (
+                signal.metadata.origin_status == "live"
+                and (signal.metadata.age_seconds or 0)
+                > city_config(city)["maximum_source_age_seconds"][name]
+            )
             if signal.metadata.stale:
                 gaps.append(name) if name != "air_quality" else None
             signals[name] = signal
@@ -92,9 +96,13 @@ def compare(at, hours, city="melbourne"):
         groups = {}
         for row in values:
             payload = json.loads(row.payload)["activity"]
-            key = ", ".join(
-                f"{k}:{v['origin_status']}:{'stale' if v['stale'] else 'fresh'}"
-                for k, v in sorted(payload["input_freshness"].items())
+            key = (
+                payload.get("methodology_version", "legacy")
+                + ": "
+                + ", ".join(
+                    f"{k}:{v.get('source', 'unknown')}:{v.get('data_kind', 'unknown')}:{v['origin_status']}:{'stale' if v['stale'] else 'fresh'}"
+                    for k, v in sorted(payload["input_freshness"].items())
+                )
             )
             groups.setdefault(key, []).append(row.score)
         return {

@@ -1,17 +1,7 @@
-import httpx
+"""Compatibility wrapper for the original service import path."""
 
 
 async def get_weather():
-    url = "https://wttr.in/Melbourne?format=j1"
+    from app.ingestion import ingestion
 
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        data = response.json()
-
-    return {
-        "temperature": data["current_condition"][0]["temp_C"],
-        "condition": data["current_condition"][0]["weatherDesc"][0]["value"],
-        "description": data["current_condition"][0]["weatherDesc"][0]["value"],
-        "wind_speed": data["current_condition"][0]["windspeedKmph"],
-        "city": "Melbourne",
-    }
+    return (await ingestion.get("weather")).model_dump(mode="json")

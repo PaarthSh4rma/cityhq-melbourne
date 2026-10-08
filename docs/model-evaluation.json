@@ -1,0 +1,80 @@
+{
+  "version": "temperature-v1",
+  "mode": "synthetic",
+  "target": "Next-hour temperature (\u00b0C)",
+  "seed": 42,
+  "selected_model": "random_forest",
+  "selection": "Minimum validation MAE; test untouched for model selection",
+  "dataset_sha256": "a0b7edcc00faaffb1e763f5a2a4c17680e1d92b14a2220c9d5f76f310fb6f197",
+  "rows": 4295,
+  "metrics": {
+    "baseline": {
+      "validation": {
+        "mae": 1.164191063739174,
+        "rmse": 1.3968826683775115
+      },
+      "test": {
+        "mae": 1.1778568076522848,
+        "rmse": 1.404924829494607
+      }
+    },
+    "ridge": {
+      "validation": {
+        "mae": 0.690996952500705,
+        "rmse": 0.8580860532374434
+      },
+      "test": {
+        "mae": 0.7065721263289693,
+        "rmse": 0.8800571209294079
+      }
+    },
+    "random_forest": {
+      "validation": {
+        "mae": 0.684472157069439,
+        "rmse": 0.8557050617010695
+      },
+      "test": {
+        "mae": 0.7554482070301634,
+        "rmse": 0.9381930049226194
+      }
+    }
+  },
+  "splits": {
+    "train": {
+      "rows": 2576,
+      "start": "2025-01-02T00:00:00+00:00",
+      "end": "2025-04-19T07:00:00+00:00"
+    },
+    "validation": {
+      "rows": 858,
+      "start": "2025-04-19T09:00:00+00:00",
+      "end": "2025-05-25T02:00:00+00:00"
+    },
+    "test": {
+      "rows": 859,
+      "start": "2025-05-25T04:00:00+00:00",
+      "end": "2025-06-29T22:00:00+00:00"
+    }
+  },
+  "feature_importance": {
+    "temperature": 0.9365154608079319,
+    "lag1": 0.0027448872784654544,
+    "lag24": 0.004427502501232377,
+    "mean6": 0.0033056885930237575,
+    "hour_sin": 0.0481952923583047,
+    "hour_cos": 0.004811168461041948
+  },
+  "importance_note": "Random forest impurity importance, descriptive and not causal; correlated features can share importance.",
+  "residuals": {
+    "mean": -0.13447150251181814,
+    "std": 0.928506074023185,
+    "p05": -1.5983614356276006,
+    "p95": 1.4872039113235527
+  },
+  "limitations": [
+    "Synthetic research demonstration; metrics do not establish Melbourne forecast skill.",
+    "One chronological split; weather regime changes may reduce performance.",
+    "No calibrated prediction intervals. Residual quantiles are diagnostics only.",
+    "Recursive horizons beyond one hour have not been evaluated."
+  ]
+}

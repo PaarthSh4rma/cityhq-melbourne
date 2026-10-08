@@ -9,6 +9,7 @@ from sqlalchemy import text
 from app import persistence as db
 from app.analytics import activity_score
 from app.api import router
+from app.cities import CITIES
 from app.config import settings
 from app.ingestion import ingestion
 
@@ -16,8 +17,9 @@ from app.ingestion import ingestion
 async def ingest_loop():
     while True:
         try:
-            signals = await ingestion.all()
-            db.record_activity(activity_score(signals), signals)
+            for city in CITIES:
+                signals = await ingestion.all(city)
+                db.record_activity(activity_score(signals, city=city), signals, city)
             db.retain()
         except Exception:
             # Keep the loop alive; diagnostics/health expose storage or feed failures.
@@ -33,7 +35,7 @@ async def ingest_loop():
 async def lifespan(app):
     # Schema managed through Alembic; fail startup if migrations were not applied.
     with db.engine.connect() as connection:
-        connection.execute(text("SELECT id FROM ingestion_runs LIMIT 1"))
+        connection.execute(text("SELECT city_id FROM ingestion_runs LIMIT 1"))
     task = asyncio.create_task(ingest_loop())
     yield
     task.cancel()
@@ -41,7 +43,7 @@ async def lifespan(app):
         await task
 
 
-app = FastAPI(title="CITYHQ Melbourne API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="CITYHQ Reality Engine API", version="2.0.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(settings.cors_origins),
@@ -65,7 +67,7 @@ def root():
 def health():
     try:
         with db.engine.connect() as connection:
-            connection.execute(text("SELECT id FROM ingestion_runs LIMIT 1"))
+            connection.execute(text("SELECT city_id FROM ingestion_runs LIMIT 1"))
         return {
             "api": "reachable",
             "storage": "ready",

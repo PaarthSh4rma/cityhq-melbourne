@@ -1,0 +1,9 @@
+{
+  "status": "insufficient_coverage",
+  "city_id": "delhi",
+  "complete_hours": 0,
+  "required_hours": 240,
+  "limitations": [
+    "Requires genuine observed, contiguous city weather; modelled Open-Meteo estimates and synthetic fixtures are excluded."
+  ]
+}

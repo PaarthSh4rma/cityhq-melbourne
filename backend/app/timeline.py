@@ -8,19 +8,21 @@ from sqlalchemy.orm import Session
 
 from app import persistence as db
 from app.analytics import activity_score
-from app.schemas import Events, Provenance, Transport, Weather
+from app.cities import city_config
+from app.schemas import AirQuality, Events, Provenance, Transport, Weather
 
-MODELS = {"weather": Weather, "transport": Transport, "events": Events}
-TTLS = {"weather": 600, "transport": 120, "events": 1800}
+MODELS = {"weather": Weather, "transport": Transport, "events": Events, "air_quality": AirQuality}
+TTLS = {"weather": 600, "transport": 120, "events": 1800, "air_quality": 3600}
 
 
-def snapshot(at):
+def snapshot(at, city="melbourne"):
+    ttls = city_config(city)["ttls"]
     signals, captures, gaps = {}, {}, []
     with Session(db.engine) as session:
         for name, table in db.TABLES.items():
             row = session.scalar(
                 select(table)
-                .where(table.timestamp <= at.isoformat())
+                .where(table.timestamp <= at.isoformat(), table.city_id == city)
                 .order_by(table.timestamp.desc(), table.id.desc())
                 .limit(1)
             )
@@ -32,12 +34,14 @@ def snapshot(at):
                         source="No stored capture",
                         status="unavailable",
                         origin_status="unavailable",
-                        ttl_seconds=TTLS[name],
+                        ttl_seconds=ttls[name],
+                        city_id=city,
+                        source_id=name,
                         limitations=["No capture exists at or before this time."],
                     )
                 )
                 captures[name] = None
-                gaps.append(name)
+                gaps.append(name) if name != "air_quality" else None
                 continue
             signal = MODELS[name].model_validate(json.loads(row.payload))
             captured = datetime.fromisoformat(row.timestamp)
@@ -49,13 +53,14 @@ def snapshot(at):
             )
             signal.metadata.stale = age > signal.metadata.ttl_seconds
             if signal.metadata.stale:
-                gaps.append(name)
+                gaps.append(name) if name != "air_quality" else None
             signals[name] = signal
             captures[name] = {"timestamp": row.timestamp, "age_seconds": age}
     return dict(
         at=at.isoformat(),
         signals={k: v.model_dump(mode="json") for k, v in signals.items()},
-        activity=activity_score(signals, at),
+        city_id=city,
+        activity=activity_score(signals, at, city),
         captures=captures,
         gaps=gaps,
         limitations=[
@@ -67,13 +72,14 @@ def snapshot(at):
     )
 
 
-def compare(at, hours):
+def compare(at, hours, city="melbourne"):
     end = at
     split, start = end - timedelta(hours=hours), end - timedelta(hours=hours * 2)
     with Session(db.engine) as session:
         rows = session.scalars(
             select(db.ActivityFeature)
             .where(
+                db.ActivityFeature.city_id == city,
                 db.ActivityFeature.timestamp >= start.isoformat(),
                 db.ActivityFeature.timestamp <= end.isoformat(),
             )

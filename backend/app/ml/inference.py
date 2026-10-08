@@ -5,6 +5,7 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
+from app.cities import city_config
 from app.config import settings
 from app.ml.pipeline import FEATURES, features, observed_frame
 
@@ -15,19 +16,29 @@ def _load(path, mtime):
     return joblib.load(path)
 
 
-def forecast(model="selected", horizon=1):
-    path = Path(settings.artifact_dir) / "temperature.joblib"
+def forecast(model="selected", horizon=1, city="melbourne"):
+    path = (
+        Path(settings.artifact_dir)
+        / city_config(city)["forecast"]["artifact_subdirectory"]
+        / "temperature.joblib"
+    )
     if not path.exists():
         return dict(
             available=False,
-            reason="No trained model. Run python -m app.ml.pipeline --mode synthetic.",
+            reason=f"Insufficient observed coverage or no {city} artifact. Train with --city {city} --mode synthetic for an explicitly synthetic research model.",
             predictions=[],
             observed=[],
         )
     artifact = _load(str(path), path.stat().st_mtime_ns)
     meta = artifact["metadata"]
+    if meta.get("city_id", "melbourne") != city:
+        return dict(
+            available=False, reason="Model artifact city mismatch.", predictions=[], observed=[]
+        )
     selected = meta["selected_model"] if model == "selected" else model
-    frame = artifact["tail"].copy() if meta["mode"] == "synthetic" else observed_frame().tail(72)
+    frame = (
+        artifact["tail"].copy() if meta["mode"] == "synthetic" else observed_frame(city).tail(72)
+    )
     if len(frame) < 25:
         return dict(
             available=False,
@@ -54,7 +65,7 @@ def forecast(model="selected", horizon=1):
     ]
     predictions = []
     for step in range(horizon):
-        vector = features(frame).iloc[-1:][FEATURES]
+        vector = features(frame, city).iloc[-1:][FEATURES]
         if vector.isna().any().any():
             return dict(
                 available=False,
@@ -74,13 +85,14 @@ def forecast(model="selected", horizon=1):
             [frame, pd.DataFrame([dict(timestamp=stamp, temperature=value)])], ignore_index=True
         )
     result = dict(
+        city_id=city,
         available=True,
         model=selected,
         horizon=horizon,
         metadata=meta,
         observed=observed,
         predictions=predictions,
-        explanation="Uses current temperature, 1h/24h lags, trailing 6h mean and cyclical Melbourne hour. Synthetic forecasts continue the research timeline."
+        explanation="Uses current temperature, 1h/24h lags, trailing 6h mean and cyclical city-local hour. Synthetic forecasts continue the research timeline."
         if meta["mode"] == "synthetic"
         else "Uses only observed temperature lags and calendar features.",
     )
@@ -92,13 +104,19 @@ def forecast(model="selected", horizon=1):
     from app.persistence import Prediction, engine, utcnow
 
     digest = hashlib.sha256(
-        json.dumps([meta["dataset_sha256"], selected, predictions], sort_keys=True).encode()
+        json.dumps([city, meta["dataset_sha256"], selected, predictions], sort_keys=True).encode()
     ).hexdigest()
     with Session(engine) as session:
-        if not session.scalar(select(Prediction.id).where(Prediction.digest == digest)):
+        if not session.scalar(
+            select(Prediction.id).where(Prediction.digest == digest, Prediction.city_id == city)
+        ):
             session.add(
                 Prediction(
-                    timestamp=utcnow().isoformat(), digest=digest, payload=json.dumps(result)
+                    city_id=city,
+                    timestamp=utcnow().isoformat(),
+                    digest=digest,
+                    dedup_key=digest,
+                    payload=json.dumps(result),
                 )
             )
             session.commit()

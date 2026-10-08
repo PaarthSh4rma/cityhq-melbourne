@@ -21,7 +21,7 @@ def build_signed_url(path: str, params: dict | None = None) -> str:
     params = dict(params or {})
     params["devid"] = devid
 
-    query = urlencode(params)
+    query = urlencode(params, doseq=True)
     raw = f"{path}?{query}"
 
     signature = (

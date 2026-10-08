@@ -163,3 +163,7 @@ data/*
 !data/.gitkeep
 playwright-report/
 test-results/
+
+# Provider probes, backups and isolated previews
+backend/tmp/
+.next-e2e/

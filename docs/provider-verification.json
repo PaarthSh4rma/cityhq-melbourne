@@ -1,0 +1,169 @@
+[
+  {
+    "city_id": "melbourne",
+    "source": "weather",
+    "provider": "open-meteo",
+    "verified_at": "2026-10-08T14:06:35.179753+00:00",
+    "status": "verified",
+    "sample_time": "2026-10-08T14:00:00+00:00",
+    "fields": [
+      "apparent_temperature",
+      "city",
+      "condition",
+      "description",
+      "forecast",
+      "hourly",
+      "humidity",
+      "precipitation",
+      "temperature",
+      "weather_code",
+      "wind_direction",
+      "wind_speed"
+    ],
+    "sample": {
+      "temperature": 12.8,
+      "humidity": 72.0,
+      "wind_speed": 11.2
+    },
+    "normalized_sha256": "aa288f160c33c3b571d252626a63dae82321c4f099ad012a17ae9c0d7a543371",
+    "limitations": [
+      "Modelled numerical weather at the provider grid cell, not a local weather-station observation.",
+      "Unix timestamps are UTC instants; daily dates use the configured city time zone.",
+      "Attribution: Open-Meteo, CC BY 4.0. Public API for noncommercial evaluation; commercial use requires an appropriate plan."
+    ]
+  },
+  {
+    "city_id": "melbourne",
+    "source": "air_quality",
+    "provider": "open-meteo-aq",
+    "verified_at": "2026-10-08T14:06:36.786646+00:00",
+    "status": "verified",
+    "sample_time": "2026-10-08T14:00:00+00:00",
+    "fields": [
+      "european_aqi",
+      "hourly",
+      "nitrogen_dioxide",
+      "ozone",
+      "pm10",
+      "pm2_5",
+      "us_aqi"
+    ],
+    "sample": {
+      "pm2_5": 6.7,
+      "us_aqi": 51.0,
+      "european_aqi": 30.0
+    },
+    "normalized_sha256": "317ee17fa6f397c3f1963005ff91dc8db6bd9e4d3086f8362c7840de4aaa02aa",
+    "limitations": [
+      "Modelled CAMS global air quality, approximately 45 km resolution; not station measurements.",
+      "US AQI and European AQI are distinct standards; neither is the Indian National AQI.",
+      "Attribution: Open-Meteo and CAMS ENSEMBLE / CAMS global. CC BY 4.0; public API is for noncommercial use."
+    ]
+  },
+  {
+    "city_id": "melbourne",
+    "source": "transport",
+    "provider": "ptv",
+    "status": "credentials_required",
+    "verified_at": "2026-10-08T14:06:38.223420+00:00"
+  },
+  {
+    "city_id": "melbourne",
+    "source": "events",
+    "provider": "ticketmaster",
+    "status": "credentials_required",
+    "verified_at": "2026-10-08T14:06:38.223493+00:00"
+  },
+  {
+    "city_id": "delhi",
+    "source": "weather",
+    "provider": "open-meteo",
+    "verified_at": "2026-10-08T14:06:38.223506+00:00",
+    "status": "verified",
+    "sample_time": "2026-10-08T14:00:00+00:00",
+    "fields": [
+      "apparent_temperature",
+      "city",
+      "condition",
+      "description",
+      "forecast",
+      "hourly",
+      "humidity",
+      "precipitation",
+      "temperature",
+      "weather_code",
+      "wind_direction",
+      "wind_speed"
+    ],
+    "sample": {
+      "temperature": 29.3,
+      "humidity": 63.0,
+      "wind_speed": 3.7
+    },
+    "normalized_sha256": "c024970f7996ee6b03dbd2bd361c631bf63a069eaf9f88a788db372547250706",
+    "limitations": [
+      "Modelled numerical weather at the provider grid cell, not a local weather-station observation.",
+      "Unix timestamps are UTC instants; daily dates use the configured city time zone.",
+      "Attribution: Open-Meteo, CC BY 4.0. Public API for noncommercial evaluation; commercial use requires an appropriate plan."
+    ]
+  },
+  {
+    "city_id": "delhi",
+    "source": "air_quality",
+    "provider": "open-meteo-aq",
+    "verified_at": "2026-10-08T14:06:39.503908+00:00",
+    "status": "verified",
+    "sample_time": "2026-10-08T14:00:00+00:00",
+    "fields": [
+      "european_aqi",
+      "hourly",
+      "nitrogen_dioxide",
+      "ozone",
+      "pm10",
+      "pm2_5",
+      "us_aqi"
+    ],
+    "sample": {
+      "pm2_5": 81.5,
+      "us_aqi": 173.0,
+      "european_aqi": 76.0
+    },
+    "normalized_sha256": "3e5251e9a4c1362c61a024da7ceaa8e309a805ca822138a03faa6a0ce2144680",
+    "limitations": [
+      "Modelled CAMS global air quality, approximately 45 km resolution; not station measurements.",
+      "US AQI and European AQI are distinct standards; neither is the Indian National AQI.",
+      "Attribution: Open-Meteo and CAMS ENSEMBLE / CAMS global. CC BY 4.0; public API is for noncommercial use."
+    ]
+  },
+  {
+    "city_id": "delhi",
+    "source": "transport",
+    "provider": "delhi-metro-static",
+    "verified_at": "2026-10-08T14:06:41.037551+00:00",
+    "status": "verified",
+    "sample_time": "2026-10-08T13:47:50+00:00",
+    "fields": [
+      "disruption_count",
+      "network",
+      "operational_status_available",
+      "status"
+    ],
+    "sample": {
+      "disruption_count": 0,
+      "operational_status_available": false
+    },
+    "normalized_sha256": "1ae3755e704d800626f8311db614d78c826955e044d51d19ca4e06a50fa8f847",
+    "limitations": [
+      "Static community map extract, not an official DMRC feed or live delay information.",
+      "Node stations tagged Delhi Metro and route relations in 28.3,76.8,28.95,77.6; incomplete geometry and duplicate interchange station nodes are possible.",
+      "OSM source timestamp indicates extract currency, not survey or operational verification."
+    ]
+  },
+  {
+    "city_id": "delhi",
+    "source": "events",
+    "provider": "ticketmaster",
+    "status": "credentials_required",
+    "verified_at": "2026-10-08T14:06:41.076481+00:00"
+  }
+]

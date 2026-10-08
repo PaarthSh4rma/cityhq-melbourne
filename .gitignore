@@ -151,3 +151,15 @@ __pycache__/
 
 # OS
 .DS_Store
+# CITYHQ local state
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.sqlite*
+*.db
+*.joblib
+backend/artifacts/
+data/*
+!data/.gitkeep
+playwright-report/
+test-results/

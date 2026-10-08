@@ -102,6 +102,7 @@ def train(frame, mode="synthetic", output=None):
         else candidates[best].predict(test[FEATURES])
     )
     importance = dict(zip(FEATURES, candidates["random_forest"].feature_importances_.tolist()))
+    counts, edges = np.histogram(residual, bins=12)
     metadata = dict(
         version=VERSION,
         mode=mode,
@@ -125,6 +126,14 @@ def train(frame, mode="synthetic", output=None):
             std=float(residual.std()),
             p05=float(np.quantile(residual, 0.05)),
             p95=float(np.quantile(residual, 0.95)),
+            histogram=[
+                dict(low=float(edges[i]), high=float(edges[i + 1]), count=int(n))
+                for i, n in enumerate(counts)
+            ],
+            timeline=[
+                dict(timestamp=test.index[i].isoformat(), error=float(residual[i]))
+                for i in range(0, len(test), max(1, len(test) // 72))
+            ],
         ),
         limitations=[
             "Synthetic research demonstration; metrics do not establish Melbourne forecast skill."

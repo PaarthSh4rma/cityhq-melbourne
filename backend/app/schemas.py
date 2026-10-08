@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class Provenance(BaseModel):
@@ -65,4 +65,54 @@ class Events(Signal):
 
 
 class Ask(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     question: str = Field(min_length=1, max_length=1000)
+
+
+class OperatorAction(BaseModel):
+    """Only declarative UI operations; never URLs, scripts or arbitrary coordinates."""
+
+    model_config = ConfigDict(extra="forbid")
+    type: Literal[
+        "navigate_dashboard", "focus_map_location", "toggle_map_layer", "select_time_range"
+    ]
+    view: (
+        Literal["overview", "transit", "weather", "events", "forecasting", "diagnostics"] | None
+    ) = None
+    location: (
+        Literal[
+            "cbd",
+            "flinders",
+            "southern-cross",
+            "melbourne-park",
+            "docklands",
+            "southbank",
+            "st-kilda",
+        ]
+        | None
+    ) = None
+    layer: Literal["events", "transit", "weather", "alerts", "boundaries"] | None = None
+    enabled: bool | None = None
+    hours: Literal[6, 24, 168, 720] | None = None
+
+    @model_validator(mode="after")
+    def validate_shape(self):
+        fields = {
+            "navigate_dashboard": {"view"},
+            "focus_map_location": {"location"},
+            "toggle_map_layer": {"layer", "enabled"},
+            "select_time_range": {"hours"},
+        }[self.type]
+        supplied = {
+            key for key, value in self.model_dump().items() if key != "type" and value is not None
+        }
+        if supplied != fields:
+            raise ValueError("Action fields must match its declared type")
+        return self
+
+
+class Scenario(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    events: float = Field(ge=0, le=40, allow_inf_nan=False)
+    transport: float = Field(ge=0, le=25, allow_inf_nan=False)
+    weather: float = Field(ge=0, le=15, allow_inf_nan=False)

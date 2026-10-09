@@ -312,7 +312,10 @@ test("two-city transition, AQ standards, static Metro and Operator city actions"
   await expect(
     page.getByRole("heading", { name: "Melbourne, in focus." }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Ask Operator", exact: true }).click();
+  // The transferred reply keeps the console open in the destination city.
+  await expect(
+    page.getByRole("region", { name: "CITYHQ Operator" }),
+  ).toBeVisible();
   await page
     .getByLabel("Ask CityHQ", { exact: true })
     .fill("Show Delhi Metro stations.");

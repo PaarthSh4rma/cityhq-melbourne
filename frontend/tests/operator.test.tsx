@@ -17,6 +17,7 @@ it("shows grounded response, navigation and reset", async () => {
   );
   const navigate = vi.fn();
   render(<Operator navigate={navigate} onClose={() => {}} />);
+  expect(screen.getByLabelText("Ask CityHQ")).toHaveFocus();
   fireEvent.change(screen.getByLabelText("Ask CityHQ"), {
     target: { value: "Weather?" },
   });

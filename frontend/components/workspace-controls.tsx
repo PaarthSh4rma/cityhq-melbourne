@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Command, Search, X } from "lucide-react";
+import { NocturneMark } from "./intelligence-primitives";
 import { useCity } from "@/lib/city-context";
 import { VIEWS, type Action } from "@/lib/commands";
 import type { Meta } from "@/lib/types";
@@ -129,6 +130,7 @@ export function BootSequence({
   replay: number;
   onDone?: () => void;
 }) {
+  const { config } = useCity();
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (reduced) return;
@@ -152,9 +154,9 @@ export function BootSequence({
       label="CityHQ connection briefing"
     >
       <div className="boot-mark">
-        <Command size={42} />
+        <NocturneMark />
       </div>
-      <span className="eyebrow">CITYHQ // MELBOURNE</span>
+      <span className="eyebrow">CITYHQ // {config.name.toUpperCase()}</span>
       <h2>Establishing city context.</h2>
       <p>Current connection state. Missing feeds stay visible.</p>
       <div className="boot-sources">
@@ -174,6 +176,63 @@ export function BootSequence({
       <button autoFocus onClick={() => setOpen(false)}>
         Enter workspace / Skip
       </button>
+    </Dialog>
+  );
+}
+
+export function PresentationSettings({
+  open,
+  onClose,
+  sonar,
+  onSonar,
+  reduced,
+  onReplay,
+}: {
+  open: boolean;
+  onClose: () => void;
+  sonar: boolean;
+  onSonar: (value: boolean) => void;
+  reduced: boolean;
+  onReplay: () => void;
+}) {
+  return (
+    <Dialog open={open} onClose={onClose} label="Presentation settings">
+      <div className="panel-heading">
+        <div>
+          <span className="eyebrow">NOCTURNE / PREFERENCES</span>
+          <h2>Presentation controls</h2>
+        </div>
+        <button aria-label="Close settings" onClick={onClose}>
+          <X size={18} />
+        </button>
+      </div>
+      <label className="setting-row">
+        <span>
+          <strong>Spatial transition</strong>
+          <small>
+            Brief visual sweep on camera focus. No physical sensor activity.
+          </small>
+        </span>
+        <input
+          aria-label="Enable spatial transition"
+          type="checkbox"
+          checked={sonar}
+          onChange={(e) => onSonar(e.target.checked)}
+        />
+      </label>
+      <p className="caption">
+        {reduced
+          ? "Reduced effects are active. Spatial transitions and tilted cameras are disabled."
+          : "Use Reduced effects in the system bar to flatten maps and remove presentation motion."}{" "}
+        The operating system’s reduced-motion preference is also respected.
+      </p>
+      <button onClick={onReplay} disabled={reduced}>
+        Replay briefing
+      </button>
+      <p className="caption">
+        Preferences are stored only in this browser. Data and provider
+        availability remain unchanged.
+      </p>
     </Dialog>
   );
 }

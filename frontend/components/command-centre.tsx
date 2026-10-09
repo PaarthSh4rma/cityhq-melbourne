@@ -39,6 +39,7 @@ import type {
   Weather,
 } from "@/lib/types";
 import type { MapSelection } from "./city-map";
+import { CaptureScrubber, SourceBadge } from "./intelligence-primitives";
 import { OperatorCore } from "./operator";
 import { ScenarioLab } from "./research-tools";
 const CityMap = dynamic(() => import("./city-map"), {
@@ -66,6 +67,7 @@ export default function CommandCentre({
   navigate,
   onOperator,
   reduced,
+  sonar,
   area,
   compareNonce,
   sourceErrors,
@@ -86,6 +88,7 @@ export default function CommandCentre({
   navigate: (view: View) => void;
   onOperator: () => void;
   reduced: boolean;
+  sonar: boolean;
   area: string;
   compareNonce: number;
   sourceErrors: Record<string, string | null>;
@@ -151,7 +154,7 @@ export default function CommandCentre({
     setRail(true);
   }
   return (
-    <>
+    <div className="command-workspace">
       <div className="command-status">
         <span>
           <i className="dot" />
@@ -168,8 +171,12 @@ export default function CommandCentre({
             {" "}
             <Clock3 size={14} /> Time machine
           </button>
-          <button className="text-button" onClick={() => setRail((v) => !v)}>
-            {rail ? "Collapse" : "Expand"} intelligence
+          <button
+            className="text-button"
+            aria-label={rail ? "Collapse intelligence" : "Expand intelligence"}
+            onClick={() => setRail((v) => !v)}
+          >
+            {rail ? "Hide" : "Show"} panels
           </button>
         </div>
       </div>
@@ -298,6 +305,7 @@ export default function CommandCentre({
             selection={selected}
             onSelect={select}
             reduced={reduced}
+            sonar={sonar}
           />
         </section>
         {rail && (
@@ -305,12 +313,43 @@ export default function CommandCentre({
             className="intelligence-rail"
             aria-label="Contextual intelligence"
           >
+            <section className="panel environmental-readout">
+              <div className="panel-heading">
+                <span className="eyebrow">ENVIRONMENT / {config.name}</span>
+                <SourceBadge meta={aq?.metadata} label="air quality" />
+              </div>
+              <div className="environment-value">
+                <strong>{aq?.us_aqi ?? "—"}</strong>
+                <span>
+                  US AQI
+                  <small>
+                    {aq?.metadata.data_kind || "unknown"} ·{" "}
+                    {aq?.metadata.geographic_precision ||
+                      "precision unavailable"}
+                  </small>
+                </span>
+              </div>
+              <div className="environment-weather">
+                <span>{w?.temperature ?? "—"}°C</span>
+                <span>{w?.condition || "Weather unavailable"}</span>
+              </div>
+              <p className="caption">
+                Sample {melbourneTime(aq?.metadata.observed_at)}. Pollution is
+                separate from activity.
+              </p>
+              <button
+                className="text-button"
+                onClick={() => navigate("air-quality")}
+              >
+                Inspect environmental intelligence <ArrowUpRight size={13} />
+              </button>
+            </section>
             <button className="operator-dock" onClick={onOperator}>
               <OperatorCore />
               <div>
                 <span className="eyebrow">CITYHQ OPERATOR</span>
-                <h2>Ask. Focus. Understand.</h2>
-                <p>Explore your city through its signals.</p>
+                <h2>Operator console</h2>
+                <p>Grounded queries. Validated controls.</p>
               </div>
               <ArrowUpRight size={18} />
             </button>
@@ -444,13 +483,13 @@ export default function CommandCentre({
               ).map(([name, signal]) => (
                 <div className="data-row" key={name}>
                   <span>{name}</span>
-                  <strong>
-                    {!at && sourceErrors[name]
-                      ? "API error"
-                      : signal?.metadata.stale
-                        ? "stale"
-                        : signal?.metadata.status || "checking"}
-                  </strong>
+                  <span>
+                    {!at && sourceErrors[name] ? (
+                      "API error"
+                    ) : (
+                      <SourceBadge meta={signal?.metadata} label={name} />
+                    )}
+                  </span>
                 </div>
               ))}
               <button
@@ -474,6 +513,29 @@ export default function CommandCentre({
               <button
                 role="tab"
                 aria-selected={panel === id}
+                tabIndex={panel === id ? 0 : -1}
+                onKeyDown={(event) => {
+                  if (
+                    !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
+                      event.key,
+                    )
+                  )
+                    return;
+                  event.preventDefault();
+                  const tabs = ["trends", "history", "scenario"] as const;
+                  const index = tabs.indexOf(id);
+                  const next =
+                    event.key === "Home"
+                      ? tabs[0]
+                      : event.key === "End"
+                        ? tabs[2]
+                        : tabs[
+                            (index + (event.key === "ArrowRight" ? 1 : 2)) % 3
+                          ];
+                  setPanel(next);
+                  setCollapsed(false);
+                  document.getElementById(`tab-${next}`)?.focus();
+                }}
                 aria-controls={`workspace-${id}`}
                 id={`tab-${id}`}
                 key={id}
@@ -661,6 +723,14 @@ export default function CommandCentre({
                     No synthetic historical reconstruction. Missing captures
                     stay missing.
                   </p>
+                  <CaptureScrubber
+                    captures={captures.data?.items || []}
+                    at={at}
+                    onSelect={(value) => {
+                      setAt(value);
+                      setSelected(null);
+                    }}
+                  />
                   <label>
                     Recent source captures
                     <select
@@ -771,6 +841,6 @@ export default function CommandCentre({
           {diagnostics?.model_version || "MODEL UNAVAILABLE"} · PROVENANCE FIRST
         </span>
       </div>
-    </>
+    </div>
   );
 }

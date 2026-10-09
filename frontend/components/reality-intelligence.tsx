@@ -4,6 +4,16 @@ import dynamic from "next/dynamic";
 import { useCity } from "@/lib/city-context";
 import { usePoll } from "@/lib/use-poll";
 import type { AirQuality, AirComparison, Transit, Item } from "@/lib/types";
+import { SourceBadge } from "./intelligence-primitives";
+import {
+  AreaChart,
+  Area,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { DEFAULT_LAYERS } from "@/lib/commands";
 const CityMap = dynamic(() => import("./city-map"), { ssr: false });
 export function AirQualityWorkspace({
@@ -17,8 +27,18 @@ export function AirQualityWorkspace({
   const [standard, setStandard] = useState<"us_aqi" | "european_aqi">("us_aqi");
   const comparison = usePoll<AirComparison>("/compare/air-quality", 3600000);
   const label = standard === "us_aqi" ? "US AQI" : "European AQI";
+  const samples = (data?.hourly || [])
+    .filter(
+      (v) =>
+        !data?.metadata.observed_at ||
+        new Date(v.timestamp) >= new Date(data.metadata.observed_at),
+    )
+    .slice(0, 18);
+  const values = samples.flatMap((v) =>
+    v[standard] == null ? [] : [v[standard] as number],
+  );
   return (
-    <div className="reality-workspace">
+    <div className="reality-workspace environment-workspace">
       <section className="panel aq-hero">
         <div>
           <span className="eyebrow">
@@ -27,12 +47,16 @@ export function AirQualityWorkspace({
           <h2>
             {data?.metadata.data_kind === "demo"
               ? "Demo air quality."
-              : "Modelled air quality."}
+              : data?.metadata.data_kind === "modelled"
+                ? "Modelled air quality."
+                : "Air quality unavailable."}
           </h2>
           <p className="caption">
             {data?.metadata.data_kind === "demo"
               ? "Synthetic offline fixture · not an observation or model estimate."
-              : "CAMS global estimates via Open-Meteo · approximately 45 km grid · not ground-station measurements."}
+              : data?.metadata.data_kind === "modelled"
+                ? "CAMS global estimates via Open-Meteo · approximately 45 km grid · not ground-station measurements."
+                : "No air-quality estimate is available. Inspect source provenance for the provider state."}
           </p>
           <label className="aq-standard">
             Index standard{" "}
@@ -49,9 +73,7 @@ export function AirQualityWorkspace({
         <div className="aq-reading">
           <strong>{data?.[standard] ?? "—"}</strong>
           <span>{label}</span>
-          <span className={`badge ${data?.metadata.status || "unavailable"}`}>
-            {data?.metadata.status || "connecting"}
-          </span>
+          <SourceBadge meta={data?.metadata} label="air quality" />
         </div>
       </section>
       {error && (
@@ -117,27 +139,89 @@ export function AirQualityWorkspace({
         </section>
       </div>
       <section className="panel spaced">
-        <h2>Provider forecast / {label}</h2>
-        <div
-          className="aq-series"
-          role="list"
-          aria-label="Air quality forecast"
-        >
-          {(data?.hourly || [])
-            .filter(
-              (v) =>
-                !data?.metadata.observed_at ||
-                new Date(v.timestamp) >= new Date(data.metadata.observed_at),
-            )
-            .slice(0, 18)
-            .map((v) => (
-              <div key={v.timestamp} role="listitem">
-                <span>{formatTime(v.timestamp)}</span>
-                <strong>{v[standard] ?? "—"}</strong>
-                <small>PM2.5 {v.pm2_5 ?? "—"} μg/m³</small>
-              </div>
-            ))}
-        </div>
+        <h2>
+          {data?.metadata.data_kind === "demo"
+            ? "Demo forecast"
+            : "Provider forecast"}{" "}
+          / {label}
+        </h2>
+        <p className="caption">
+          {values.length} supplied forecast samples
+          {values.length
+            ? ` · range ${Math.min(...values)}–${Math.max(...values)} ${label}`
+            : ""}
+          . Line gaps indicate missing samples.
+        </p>
+        {values.length > 1 && (
+          <div
+            className="chart aq-forecast-chart"
+            role="img"
+            aria-label={`${config.name} ${label} ${data?.metadata.data_kind === "demo" ? "synthetic fixture" : "model forecast"}: ${values.length} supplied samples, range ${Math.min(...values)} to ${Math.max(...values)}`}
+          >
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              minWidth={0}
+              initialDimension={{ width: 650, height: 240 }}
+            >
+              <AreaChart data={samples}>
+                <defs>
+                  <linearGradient id="aqTrend" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#8ccbeb" stopOpacity={0.22} />
+                    <stop offset="100%" stopColor="#8ccbeb" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="#253241" />
+                <XAxis
+                  dataKey="timestamp"
+                  tickFormatter={(v) => formatTime(v)}
+                  minTickGap={70}
+                  stroke="#91a4b6"
+                  tick={{ fontSize: 11 }}
+                />
+                <YAxis width={38} stroke="#91a4b6" tick={{ fontSize: 11 }} />
+                <Tooltip
+                  labelFormatter={(v) => formatTime(String(v))}
+                  contentStyle={{
+                    background: "#111820",
+                    border: "1px solid #253241",
+                  }}
+                />
+                <Area
+                  dataKey={standard}
+                  name={label}
+                  stroke="#8ccbeb"
+                  fill="url(#aqTrend)"
+                  connectNulls={false}
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+        <details className="forecast-samples">
+          <summary>Inspect exact forecast samples</summary>
+          <div
+            className="aq-series"
+            role="list"
+            aria-label="Air quality forecast"
+          >
+            {(data?.hourly || [])
+              .filter(
+                (v) =>
+                  !data?.metadata.observed_at ||
+                  new Date(v.timestamp) >= new Date(data.metadata.observed_at),
+              )
+              .slice(0, 18)
+              .map((v) => (
+                <div key={v.timestamp} role="listitem">
+                  <span>{formatTime(v.timestamp)}</span>
+                  <strong>{v[standard] ?? "—"}</strong>
+                  <small>PM2.5 {v.pm2_5 ?? "—"} μg/m³</small>
+                </div>
+              ))}
+          </div>
+        </details>
         {!data?.hourly.length && (
           <p className="caption">
             Forecast series unavailable for this adapter.
@@ -151,7 +235,15 @@ export function AirQualityWorkspace({
     </div>
   );
 }
-export function MetroExplorer({ transit }: { transit: Transit | null }) {
+export function MetroExplorer({
+  transit,
+  reduced = false,
+  sonar = true,
+}: {
+  transit: Transit | null;
+  reduced?: boolean;
+  sonar?: boolean;
+}) {
   const [query, setQuery] = useState("");
   const [line, setLine] = useState("all");
   const [selected, setSelected] = useState<Item | null>(null);
@@ -175,7 +267,7 @@ export function MetroExplorer({ transit }: { transit: Transit | null }) {
     s.name.toLowerCase().includes(query.toLowerCase()),
   );
   return (
-    <div className="reality-workspace">
+    <div className="reality-workspace metro-workspace">
       <section className="panel">
         <span className="eyebrow">DELHI / STATIC NETWORK EXPLORER</span>
         <h2>Delhi Metro, mapped.</h2>
@@ -213,6 +305,8 @@ export function MetroExplorer({ transit }: { transit: Transit | null }) {
           events={[]}
           transit={[]}
           network={filtered}
+          reduced={reduced}
+          sonar={sonar}
           layers={{ ...DEFAULT_LAYERS, metro: true }}
           selection={selected ? { kind: "transit", item: selected } : null}
         />
@@ -221,7 +315,18 @@ export function MetroExplorer({ transit }: { transit: Transit | null }) {
           replay; it is not reconstructed operational history.
         </p>
       </section>
-      <section className="panel spaced">
+      <section className="panel station-dossier">
+        {selected && (
+          <div className="station-selection">
+            <span className="eyebrow">SELECTED STATION / STATIC OSM</span>
+            <h2>{selected.title}</h2>
+            <p className="caption">
+              {selected.coordinates?.[1].toFixed(5)}° N /{" "}
+              {selected.coordinates?.[0].toFixed(5)}° E. Camera focus only. Live
+              operational status unavailable.
+            </p>
+          </div>
+        )}
         <h2>Station search / {stations.length} nodes</h2>
         <div className="metro-stations">
           {stations.map((s) => (

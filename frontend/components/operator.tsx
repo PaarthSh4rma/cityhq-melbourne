@@ -1,25 +1,17 @@
 "use client";
 import { useCity, type InitialMessage } from "@/lib/city-context";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Sparkles, X } from "lucide-react";
+import { ArrowUp, Terminal, X } from "lucide-react";
 import { request } from "@/lib/api";
 import { validateAction, VIEWS, type Action } from "@/lib/commands";
 import type { Reply, View } from "@/lib/types";
 export function OperatorCore({ state = "standby" }: { state?: string }) {
   return (
     <div
-      className={`operator-core ${state === "querying" ? "processing" : ""}`}
+      className={`operator-core console-mark ${state === "querying" ? "processing" : ""}`}
       aria-hidden="true"
     >
-      <div className="core-orbit orbit-a" />
-      <div className="core-orbit orbit-b" />
-      <div className="core-orbit orbit-c" />
-      <div className="core-nucleus">
-        <Sparkles size={21} />
-      </div>
-      <i />
-      <i />
-      <i />
+      <Terminal size={22} />
     </div>
   );
 }
@@ -51,7 +43,7 @@ export default function Operator({
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
-    panel.current?.focus();
+    panel.current?.querySelector<HTMLInputElement>("input")?.focus();
     return () => previous?.focus();
   }, [open]);
   useEffect(() => () => controller.current?.abort(), []);
@@ -114,7 +106,7 @@ export default function Operator({
       <div className="panel-heading">
         <div>
           <span className="eyebrow">
-            <Sparkles size={14} /> CITY INTERFACE / 01
+            <Terminal size={14} /> DETERMINISTIC INTELLIGENCE
           </span>
           <h2>CITYHQ Operator</h2>
         </div>
@@ -127,9 +119,7 @@ export default function Operator({
         <div>
           <span className="eyebrow">{state.toUpperCase()}</span>
           <p>
-            Your city.
-            <br />
-            <strong>Within reach.</strong>
+            <strong>{config.name} command context.</strong>
           </p>
         </div>
       </div>
@@ -137,24 +127,27 @@ export default function Operator({
         Grounded, deterministic queries. Validated map and dashboard controls.
         No external language-model service.
       </p>
-      <div className="suggestions">
-        {[
-          city === "melbourne"
-            ? "Show Melbourne Park"
-            : "Show Delhi Metro stations",
-          "Compare last six hours",
-          `What’s happening in ${config.name} right now?`,
-          `What is the AQI in ${config.name}?`,
-          "Which city has worse air quality right now?",
-          "Why is the activity score elevated?",
-          "Which sources are unavailable?",
-          "What is the forecast based on?",
-        ].map((q) => (
-          <button key={q} disabled={busy} onClick={() => ask(q)}>
-            {q}
-          </button>
-        ))}
-      </div>
+      <details className="operator-command-catalogue" open={!messages.length}>
+        <summary>Suggested commands</summary>
+        <div className="suggestions">
+          {[
+            city === "melbourne"
+              ? "Show Melbourne Park"
+              : "Show Delhi Metro stations",
+            "Compare last six hours",
+            `What’s happening in ${config.name} right now?`,
+            `What is the AQI in ${config.name}?`,
+            "Which city has worse air quality right now?",
+            "Why is the activity score elevated?",
+            "Which sources are unavailable?",
+            "What is the forecast based on?",
+          ].map((q) => (
+            <button key={q} disabled={busy} onClick={() => ask(q)}>
+              {q}
+            </button>
+          ))}
+        </div>
+      </details>
       <div
         className="conversation"
         role="log"
@@ -172,7 +165,7 @@ export default function Operator({
                   {m.actions?.map((action, j) => (
                     <span className="badge" key={j}>
                       {action.type.replaceAll("_", " ")}
-                      {onAction ? " · applied" : " · available"}
+                      {onAction || onActions ? " · applied" : " · available"}
                     </span>
                   ))}
                 </div>
@@ -224,6 +217,7 @@ export default function Operator({
         <div ref={end} />
       </div>
       <form
+        className="operator-command-entry"
         onSubmit={(e) => {
           e.preventDefault();
           void ask(input);
@@ -237,7 +231,7 @@ export default function Operator({
           maxLength={1000}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask, focus, compare…"
+          placeholder={`Command ${config.name}…`}
         />
         <button disabled={busy || !input.trim()} aria-label="Send question">
           <ArrowUp size={19} />

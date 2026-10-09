@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./overdrive.css";
+import "./nocturne.css";
 export const metadata: Metadata = {
   title: "CITYHQ — Melbourne & Delhi Intelligence",
   description:

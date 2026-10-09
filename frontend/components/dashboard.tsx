@@ -12,7 +12,6 @@ import {
   ArrowDownToLine,
   ArrowUpRight,
   CloudSun,
-  Command,
   Compass,
   Database,
   FlaskConical,
@@ -21,9 +20,11 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
-  Sparkles,
   TrainFront,
   Wind,
+  Settings2,
+  Terminal,
+  Minimize2,
 } from "lucide-react";
 import { MotionConfig } from "framer-motion";
 import {
@@ -56,7 +57,12 @@ import type {
 import { AirQualityWorkspace, MetroExplorer } from "./reality-intelligence";
 import Operator from "./operator";
 import CommandCentre from "./command-centre";
-import { BootSequence, CommandPalette } from "./workspace-controls";
+import { NocturneMark, SourceBadge } from "./intelligence-primitives";
+import {
+  BootSequence,
+  CommandPalette,
+  PresentationSettings,
+} from "./workspace-controls";
 import { ResidualDiagnostics } from "./research-tools";
 import { DEFAULT_LAYERS, type Action, type Location } from "@/lib/commands";
 const CityMap = dynamic(() => import("./city-map"), {
@@ -103,12 +109,7 @@ const TITLES: Record<View, [string, string]> = {
   ],
 };
 function Badge({ meta }: { meta?: Meta }) {
-  return (
-    <span className={`badge ${meta?.stale ? "warning" : meta?.status || ""}`}>
-      {meta?.stale ? "stale · " : ""}
-      {meta?.status || "connecting"}
-    </span>
-  );
+  return <SourceBadge meta={meta} />;
 }
 function Freshness({ meta }: { meta?: Meta }) {
   const { formatTime: melbourneTime } = useCity();
@@ -133,8 +134,17 @@ function Empty({ children }: { children: React.ReactNode }) {
 function Clock() {
   const { config } = useCity();
   const [clock, setClock] = useState("Synchronizing clock");
+  const [compact, setCompact] = useState("—");
   useEffect(() => {
-    const tick = () =>
+    const tick = () => {
+      setCompact(
+        new Date().toLocaleTimeString("en-AU", {
+          timeZone: config.timezone,
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }),
+      );
       setClock(
         new Date().toLocaleString("en-AU", {
           timeZone: config.timezone,
@@ -146,6 +156,7 @@ function Clock() {
           second: "2-digit",
         }),
       );
+    };
     tick();
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
@@ -153,7 +164,13 @@ function Clock() {
   return (
     <div className="clock">
       <span>{config.name.toUpperCase()} · LOCAL TIME</span>
-      <strong>{clock}</strong>
+      <strong className="clock-full">{clock}</strong>
+      <strong
+        className="clock-compact"
+        aria-label={`${config.name} local time`}
+      >
+        {compact}
+      </strong>
     </div>
   );
 }
@@ -264,7 +281,7 @@ function Trend({ data, signal }: { data: History | null; signal: string }) {
           <Area
             type="linear"
             dataKey={signal}
-            stroke="#5fe1d5"
+            stroke="#8ccbeb"
             strokeWidth={2}
             fill="url(#trendFill)"
             isAnimationActive={false}
@@ -335,6 +352,8 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
   const [palette, setPalette] = useState(false);
   const [reduced, setReduced] = useState(false);
   const [replay, setReplay] = useState(0);
+  const [settings, setSettings] = useState(false);
+  const [sonar, setSonar] = useState(true);
   const [layers, setLayers] = useState(() =>
     initialActions.reduce(
       (layers, a) =>
@@ -351,10 +370,12 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
   const [compareNonce, setCompareNonce] = useState(0);
   useEffect(() => {
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () =>
+    const sync = () => {
       setReduced(
         localStorage.getItem("cityhq-reduced") === "true" || preference.matches,
       );
+      setSonar(localStorage.getItem("cityhq-sonar") !== "false");
+    };
     sync();
     preference.addEventListener("change", sync);
     const shortcuts = (event: KeyboardEvent) => {
@@ -512,7 +533,7 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
   return (
     <MotionConfig reducedMotion={reduced ? "always" : "user"}>
       <div
-        className={`app-shell overdrive ${reduced ? "reduced-effects" : ""}`}
+        className={`app-shell overdrive nocturne ${reduced ? "reduced-effects" : ""}`}
       >
         <a className="skip-link" href="#main">
           Skip to content
@@ -524,7 +545,7 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
             onClick={() => navigate("overview")}
           >
             <div className="brand-symbol">
-              <Command size={25} />
+              <NocturneMark />
             </div>
             <div>
               CITYHQ<span>{config.name.toUpperCase()}</span>
@@ -545,7 +566,19 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
                 onClick={() => navigate(id)}
               >
                 <Icon size={18} />
-                <span>{label}</span>
+                <span>
+                  {
+                    {
+                      overview: "Map",
+                      transit: "Transit",
+                      weather: "Weather",
+                      "air-quality": "Air",
+                      events: "Events",
+                      forecasting: "Models",
+                      diagnostics: "System",
+                    }[id]
+                  }
+                </span>
                 <small aria-hidden="true">0{i + 1}</small>
               </button>
             ))}
@@ -569,7 +602,7 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
               aria-label="Open Operator"
               onClick={() => setOperator(true)}
             >
-              <Sparkles size={18} />
+              <Terminal size={18} />
               <span>
                 Open Operator<small>Your city, explained</small>
               </span>
@@ -582,6 +615,16 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
         </aside>
         <div className="main-shell">
           <header className="topbar">
+            <a
+              href="#overview"
+              onClick={() => navigate("overview")}
+              className="system-identity"
+            >
+              <NocturneMark />
+              <span>
+                CITYHQ<small>NOCTURNE / URBAN INTELLIGENCE</small>
+              </span>
+            </a>
             <div
               className="city-selector"
               role="group"
@@ -599,11 +642,31 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
               ))}
             </div>
 
-            <span>
+            <span className="environment-label">
               <span className="dot" /> {config.name.toUpperCase()},{" "}
               {config.country} <span className="separator">/</span>{" "}
               <b>{NAV.find((n) => n.id === view)?.label}</b>
             </span>
+            <button
+              className="health-summary"
+              onClick={() => navigate("diagnostics")}
+              aria-label="Inspect source health"
+            >
+              <Radio size={13} />
+              <span>
+                {
+                  sources.filter(
+                    (s) =>
+                      s.meta &&
+                      !s.error &&
+                      !s.meta.stale &&
+                      s.meta.status !== "unavailable",
+                  ).length
+                }{" "}
+                / {sources.length} sources
+              </span>
+              <small>LOCAL WORKSPACE</small>
+            </button>
             <div className="topbar-controls">
               <button
                 onClick={() => setPalette(true)}
@@ -614,6 +677,8 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
                 <kbd>⌘ K</kbd>
               </button>
               <button
+                aria-label="Reduced effects"
+                title="Reduced effects"
                 aria-pressed={reduced}
                 onClick={() => {
                   const next = !reduced;
@@ -621,15 +686,20 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
                   localStorage.setItem("cityhq-reduced", String(next));
                 }}
               >
-                Reduced effects
+                <Minimize2 size={15} />
+                <span className="effects-label">Reduced effects</span>
               </button>
-              <button onClick={() => setReplay((v) => v + 1)}>
-                Replay briefing
+              <button
+                aria-label="Presentation settings"
+                title="Presentation settings"
+                onClick={() => setSettings(true)}
+              >
+                <Settings2 size={17} />
               </button>
               <Clock />
             </div>
           </header>
-          <main id="main">
+          <main id="main" data-view={view} data-city={city}>
             <div className="page-heading">
               <div>
                 <span className="eyebrow">
@@ -651,7 +721,7 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
                   className="primary-button"
                   onClick={() => setOperator(true)}
                 >
-                  <Sparkles size={16} /> Ask Operator
+                  <Terminal size={16} /> Ask Operator
                 </button>
               </div>
             </div>
@@ -707,6 +777,7 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
                 navigate={navigate}
                 onOperator={() => setOperator(true)}
                 reduced={reduced}
+                sonar={sonar}
                 area={area}
                 compareNonce={compareNonce}
                 sourceErrors={{
@@ -724,7 +795,11 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
               />
             )}
             {view === "transit" && city === "delhi" && (
-              <MetroExplorer transit={transit.data} />
+              <MetroExplorer
+                transit={transit.data}
+                reduced={reduced}
+                sonar={sonar}
+              />
             )}
             {view === "transit" && city === "melbourne" && (
               <>
@@ -966,14 +1041,29 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
                     {f?.metadata?.mode || "No model"} DATASET
                   </span>
                 </div>
+                <div className="research-status">
+                  <span className="eyebrow">
+                    {config.name} / TEMPERATURE RESEARCH
+                  </span>
+                  <strong>
+                    {f?.metadata?.mode === "synthetic"
+                      ? "SYNTHETIC EVALUATION — NOT OBSERVED CITY ACCURACY"
+                      : "Inspect training provenance before interpreting forecasts"}
+                  </strong>
+                  <p>
+                    {horizon}-hour target · city-specific artifact ·
+                    chronological evaluation · no calibrated uncertainty
+                    interval
+                  </p>
+                </div>
                 <section className="panel">
                   <div className="panel-heading">
                     <div>
                       <span className="eyebrow">TEMPERATURE · °C</span>
-                      <h2>Observed vs predicted</h2>
+                      <h2>Dataset history / forecast</h2>
                     </div>
                     <span className="caption">
-                      Cyan: observed / Violet dashed: predicted
+                      Solid: dataset history / Amber dashed: predicted
                     </span>
                   </div>
                   {f?.available ? (
@@ -1010,14 +1100,14 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
                           />
                           <Line
                             dataKey="observed"
-                            stroke="#5fe1d5"
+                            stroke="#8ccbeb"
                             dot={false}
                             strokeWidth={2}
                             isAnimationActive={false}
                           />
                           <Line
                             dataKey="predicted"
-                            stroke="#b5a0ff"
+                            stroke="#c9a36b"
                             strokeDasharray="5 5"
                             strokeWidth={2}
                             dot={{ r: 3 }}
@@ -1346,6 +1436,20 @@ function CityWorkspace({ initialActions }: { initialActions: Action[] }) {
           open={palette}
           onClose={() => setPalette(false)}
           onAction={executeAction}
+        />
+        <PresentationSettings
+          open={settings}
+          onClose={() => setSettings(false)}
+          sonar={sonar}
+          onSonar={(value) => {
+            setSonar(value);
+            localStorage.setItem("cityhq-sonar", String(value));
+          }}
+          reduced={reduced}
+          onReplay={() => {
+            setSettings(false);
+            setReplay((v) => v + 1);
+          }}
         />
         <BootSequence sources={sources} reduced={reduced} replay={replay} />
       </div>

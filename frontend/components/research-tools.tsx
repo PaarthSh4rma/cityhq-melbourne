@@ -89,6 +89,10 @@ export function ScenarioLab({ activity }: { activity: Activity | null }) {
       <p className="scenario-label">
         Scenario simulation — not a real-world causal forecast
       </p>
+      <p className="caption">
+        {city === "delhi" ? "Delhi" : "Melbourne"} · hypothetical contributions
+        are isolated from source records. Missing measurements remain missing.
+      </p>
       <div className="scenario-grid">
         <div>
           {controls.map((c) => (
@@ -122,15 +126,21 @@ export function ScenarioLab({ activity }: { activity: Activity | null }) {
           ))}
         </div>
         <div className="scenario-score">
-          <span>OBSERVED INPUT INDEX</span>
+          <span>REFERENCE SOURCE INDEX</span>
           <strong>
             {activity?.score ?? "—"}
-            <small> / 100</small>
+            <small>
+              {" "}
+              / {activity?.maximum || (city === "delhi" ? 75 : 100)}
+            </small>
           </strong>
           <span>SIMULATED INDEX</span>
           <strong className="violet-text">
             {after}
-            <small> / 100</small>
+            <small>
+              {" "}
+              / {activity?.maximum || (city === "delhi" ? 75 : 100)}
+            </small>
           </strong>
           <p>
             Time context held at {time}. Manual contributions. No observations
@@ -221,7 +231,7 @@ export function ResidualDiagnostics({
               key={p.timestamp}
               title={`${p.timestamp}: ${p.error.toFixed(2)}°C`}
               style={{
-                background: p.error < 0 ? "#7091cf" : "#a891dc",
+                background: p.error < 0 ? "#8ccbeb" : "#c9a36b",
                 height: `${Math.min(100, 12 + Math.abs(p.error) * 25)}%`,
               }}
             />

@@ -27,6 +27,7 @@ export default function CityMap({
   selection,
   onSelect,
   reduced = false,
+  sonar = true,
 }: {
   events: Item[];
   transit: Item[];
@@ -40,6 +41,7 @@ export default function CityMap({
   selection?: MapSelection | null;
   onSelect?: (selection: MapSelection) => void;
   reduced?: boolean;
+  sonar?: boolean;
 }) {
   const { city, config, places: PLACES } = useCity();
   const container = useRef<HTMLDivElement>(null),
@@ -56,6 +58,27 @@ export default function CityMap({
     [ready, setReady] = useState(0),
     [error, setError] = useState("");
   const [flat, setFlat] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [position, setPosition] = useState({
+    lng: PLACES[0].center[0],
+    lat: PLACES[0].center[1],
+    zoom: PLACES[0].zoom,
+  });
+  useEffect(() => {
+    if (
+      !ready ||
+      !sonar ||
+      reduced ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return;
+    const start = requestAnimationFrame(() => setScanning(true));
+    const end = setTimeout(() => setScanning(false), 850);
+    return () => {
+      cancelAnimationFrame(start);
+      clearTimeout(end);
+    };
+  }, [ready, camera?.nonce, sonar, reduced]);
   const layers = controlled || localLayers;
   const styleURL =
     process.env.NEXT_PUBLIC_MAP_STYLE ||
@@ -93,6 +116,12 @@ export default function CityMap({
       });
       const m = instance;
       map.current = m;
+      m.on("moveend", () => {
+        if (!disposed) {
+          const point = m.getCenter();
+          setPosition({ lng: point.lng, lat: point.lat, zoom: m.getZoom() });
+        }
+      });
       styledMap.current = null;
       m.addControl(new maplibregl.NavigationControl(), "top-right");
       m.addControl(
@@ -104,18 +133,18 @@ export default function CityMap({
         try {
           for (const layer of m.getStyle().layers) {
             if (layer.type === "symbol" && layer.layout?.["text-field"]) {
-              m.setPaintProperty(layer.id, "text-color", "#b7ccdf");
-              m.setPaintProperty(layer.id, "text-halo-color", "#07111e");
+              m.setPaintProperty(layer.id, "text-color", "#91a4b6");
+              m.setPaintProperty(layer.id, "text-halo-color", "#07090d");
               m.setPaintProperty(layer.id, "text-halo-width", 1.2);
             }
             if (layer.type === "fill" && layer.paint?.["fill-pattern"])
               m.setPaintProperty(layer.id, "fill-pattern", undefined);
             if (layer.type === "background")
-              m.setPaintProperty(layer.id, "background-color", "#07111e");
+              m.setPaintProperty(layer.id, "background-color", "#07090d");
             if (layer.type === "fill" && layer["source-layer"] === "water")
-              m.setPaintProperty(layer.id, "fill-color", "#0b2338");
+              m.setPaintProperty(layer.id, "fill-color", "#0b161f");
             if (layer.type === "fill" && layer["source-layer"] === "building")
-              m.setPaintProperty(layer.id, "fill-color", "#142a3c");
+              m.setPaintProperty(layer.id, "fill-color", "#111c26");
             if (
               layer.type === "line" &&
               layer["source-layer"] === "transportation"
@@ -124,13 +153,13 @@ export default function CityMap({
                 layer.id,
                 "line-color",
                 layer.id.includes("casing")
-                  ? "#07111e"
+                  ? "#07090d"
                   : layer.id.includes("railway")
-                    ? "#6d688a"
+                    ? "#526b77"
                     : layer.id.includes("major") ||
                         layer.id.includes("motorway")
-                      ? "#49839d"
-                      : "#27485b",
+                      ? "#36505e"
+                      : "#22313e",
               );
             }
           }
@@ -152,7 +181,7 @@ export default function CityMap({
                 minzoom: 14,
                 filter: ["has", "render_height"],
                 paint: {
-                  "fill-extrusion-color": "#234459",
+                  "fill-extrusion-color": "#223c4a",
                   "fill-extrusion-height": ["get", "render_height"],
                   "fill-extrusion-base": [
                     "coalesce",
@@ -166,6 +195,20 @@ export default function CityMap({
               before,
             );
           }
+          if (building && "source" in building && building.source)
+            m.addLayer({
+              id: "cityhq-building-edges",
+              type: "line",
+              source: building.source,
+              "source-layer": "building",
+              minzoom: 15,
+              filter: ["has", "render_height"],
+              paint: {
+                "line-color": "#7fa7bc",
+                "line-width": 0.45,
+                "line-opacity": 0.28,
+              },
+            });
           m.addSource("cityhq-context", {
             type: "geojson",
             data: {
@@ -454,7 +497,64 @@ export default function CityMap({
   const p = PLACES.find((p) => p.id === camera?.location) || PLACES[0];
   return (
     <div className="geo-console">
-      <div className="map-stage">
+      <div
+        className="map-purpose-controls"
+        aria-label="Map investigation modes"
+      >
+        <button
+          onClick={() =>
+            map.current?.flyTo({
+              center: config.center as [number, number],
+              zoom: city === "delhi" ? 11.5 : 13.2,
+              duration: reduced ? 0 : 650,
+            })
+          }
+        >
+          City overview
+        </button>
+        <button
+          onClick={() => {
+            const target =
+              PLACES.find(
+                (p) => p.id === (city === "delhi" ? "new-delhi" : "flinders"),
+              ) || PLACES[0];
+            if (onFocus) onFocus(target.id);
+            else
+              map.current?.flyTo({
+                center: target.center,
+                zoom: target.zoom,
+                duration: reduced ? 0 : 650,
+              });
+          }}
+        >
+          Transport focus
+        </button>
+        <button
+          aria-pressed={layers["air-quality"]}
+          onClick={() => toggle("air-quality", !layers["air-quality"])}
+        >
+          Environmental focus
+        </button>
+      </div>
+      <div
+        className="map-stage"
+        onPointerDownCapture={() => {
+          setScanning(false);
+          map.current?.stop();
+        }}
+      >
+        {scanning && sonar && !reduced && (
+          <div className="spatial-transition" key={`${ready}-${camera?.nonce}`}>
+            <div className="spatial-sweep" aria-hidden="true" />
+            <button onClick={() => setScanning(false)}>
+              Skip visual transition
+            </button>
+            <span>VIEW TRANSITION · PRESENTATION ONLY</span>
+          </div>
+        )}
+        <div className="map-corner-label" aria-hidden="true">
+          {config.country} / GEOGRAPHIC CONTEXT
+        </div>
         <div
           ref={container}
           className="city-map"
@@ -471,8 +571,8 @@ export default function CityMap({
           <span>
             {p.label.toUpperCase()}
             <small>
-              {p.center[1].toFixed(4)}° / {p.center[0].toFixed(4)}° · GEOGRAPHIC
-              CONTEXT
+              {position.lat.toFixed(4)}° / {position.lng.toFixed(4)}° · Z{" "}
+              {position.zoom.toFixed(1)} · VIEW CENTRE
             </small>
           </span>
         </div>
@@ -480,10 +580,19 @@ export default function CityMap({
           <div className="aq-map-overlay">
             <strong>{airQuality?.us_aqi ?? "—"} US AQI</strong>
             <span>
-              {config.name} CAMS grid estimate ·{" "}
-              {airQuality?.metadata.status || "unavailable"}
+              {config.name}{" "}
+              {airQuality?.metadata.data_kind === "demo"
+                ? "demo fixture"
+                : airQuality?.metadata.data_kind === "modelled"
+                  ? "modelled area estimate"
+                  : "area context unavailable"}{" "}
+              · {airQuality?.metadata.status || "unavailable"}
             </span>
-            <small>Modelled area context (~45 km), not a local heatmap.</small>
+            <small>
+              {airQuality?.metadata.geographic_precision ||
+                "Geographic precision unavailable"}
+              . No street-level heatmap.
+            </small>
           </div>
         )}
         {network && layers.metro && (
@@ -538,11 +647,11 @@ export default function CityMap({
         </button>
         <button
           onClick={() => {
-            if (onFocus) onFocus("cbd");
+            if (onFocus) onFocus(PLACES[0].id);
             else
               map.current?.flyTo({
                 center: PLACES[0].center,
-                zoom: 15.2,
+                zoom: PLACES[0].zoom,
                 duration: reduced ? 0 : 650,
               });
           }}

@@ -1,0 +1,254 @@
+{
+  "verified_date_local": "2026-10-09",
+  "timezone": "Australia/Melbourne",
+  "native_review": "Final standalone production build, real MapLibre tiles and configured public-provider states. Read-only DOM geometry checks at each exact CSS viewport; screenshots visually reviewed.",
+  "capture_note": "Native viewport bitmaps exclude the browser scrollbar; CSS viewport dimensions were independently checked. Additional long-page captures may include native fixed-header stitching; primary matrix captures are viewport images.",
+  "matrix": [
+    {
+      "city": "melbourne",
+      "css_viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "screenshot": "docs/screenshots/nocturne-melbourne-1920x1080.jpg",
+      "bitmap": {
+        "width": 1889,
+        "height": 1072
+      },
+      "document_overflow": false,
+      "header_contains_controls": true,
+      "overlapping_header_controls": false,
+      "operator_contained": true
+    },
+    {
+      "city": "melbourne",
+      "css_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "screenshot": "docs/screenshots/nocturne-melbourne-1440x900.jpg",
+      "bitmap": {
+        "width": 1425,
+        "height": 891
+      },
+      "document_overflow": false,
+      "header_contains_controls": true,
+      "overlapping_header_controls": false,
+      "operator_contained": true
+    },
+    {
+      "city": "melbourne",
+      "css_viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "screenshot": "docs/screenshots/nocturne-melbourne-1024x768.jpg",
+      "bitmap": {
+        "width": 1009,
+        "height": 757
+      },
+      "document_overflow": false,
+      "header_contains_controls": true,
+      "overlapping_header_controls": false,
+      "operator_contained": true
+    },
+    {
+      "city": "melbourne",
+      "css_viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "screenshot": "docs/screenshots/nocturne-melbourne-768x1024.jpg",
+      "bitmap": {
+        "width": 753,
+        "height": 1004
+      },
+      "document_overflow": false,
+      "header_contains_controls": true,
+      "overlapping_header_controls": false,
+      "operator_contained": true
+    },
+    {
+      "city": "melbourne",
+      "css_viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "screenshot": "docs/screenshots/nocturne-melbourne-430x932.jpg",
+      "bitmap": {
+        "width": 415,
+        "height": 899
+      },
+      "document_overflow": false,
+      "header_contains_controls": true,
+      "overlapping_header_controls": false,
+      "operator_contained": true
+    },
+    {
+      "city": "melbourne",
+      "css_viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "screenshot": "docs/screenshots/nocturne-melbourne-390x844.jpg",
+      "bitmap": {
+        "width": 375,
+        "height": 812
+      },
+      "document_overflow": false,
+      "header_contains_controls": true,
+      "overlapping_header_controls": false,
+      "operator_contained": true
+    },
+    {
+      "city": "melbourne",
+      "css_viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "screenshot": "docs/screenshots/nocturne-melbourne-320x568.jpg",
+      "bitmap": {
+        "width": 305,
+        "height": 541
+      },
+      "document_overflow": false,
+      "header_contains_controls": true,
+      "overlapping_header_controls": false,
+      "operator_contained": true
+    },
+    {
+      "city": "delhi",
+      "css_viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "screenshot": "docs/screenshots/nocturne-delhi-1920x1080.jpg",
+      "bitmap": {
+        "width": 1889,
+        "height": 1072
+      },
+      "document_overflow": false,
+      "header_contains_controls": true,
+      "overlapping_header_controls": false,
+      "operator_contained": true
+    },
+    {
+      "city": "delhi",
+      "css_viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "screenshot": "docs/screenshots/nocturne-delhi-1440x900.jpg",
+      "bitmap": {
+        "width": 1425,
+        "height": 891
+      },
+      "document_overflow": false,
+      "header_contains_controls": true,
+      "overlapping_header_controls": false,
+      "operator_contained": true
+    },
+    {
+      "city": "delhi",
+      "css_viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "screenshot": "docs/screenshots/nocturne-delhi-1024x768.jpg",
+      "bitmap": {
+        "width": 1009,
+        "height": 757
+      },
+      "document_overflow": false,
+      "header_contains_controls": true,
+      "overlapping_header_controls": false,
+      "operator_contained": true
+    },
+    {
+      "city": "delhi",
+      "css_viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "screenshot": "docs/screenshots/nocturne-delhi-768x1024.jpg",
+      "bitmap": {
+        "width": 753,
+        "height": 1004
+      },
+      "document_overflow": false,
+      "header_contains_controls": true,
+      "overlapping_header_controls": false,
+      "operator_contained": true
+    },
+    {
+      "city": "delhi",
+      "css_viewport": {
+        "width": 430,
+        "height": 932
+      },
+      "screenshot": "docs/screenshots/nocturne-delhi-430x932.jpg",
+      "bitmap": {
+        "width": 415,
+        "height": 899
+      },
+      "document_overflow": false,
+      "header_contains_controls": true,
+      "overlapping_header_controls": false,
+      "operator_contained": true
+    },
+    {
+      "city": "delhi",
+      "css_viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "screenshot": "docs/screenshots/nocturne-delhi-390x844.jpg",
+      "bitmap": {
+        "width": 375,
+        "height": 812
+      },
+      "document_overflow": false,
+      "header_contains_controls": true,
+      "overlapping_header_controls": false,
+      "operator_contained": true
+    },
+    {
+      "city": "delhi",
+      "css_viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "screenshot": "docs/screenshots/nocturne-delhi-320x568.jpg",
+      "bitmap": {
+        "width": 305,
+        "height": 541
+      },
+      "document_overflow": false,
+      "header_contains_controls": true,
+      "overlapping_header_controls": false,
+      "operator_contained": true
+    }
+  ],
+  "automated_acceptance": {
+    "backend_passed": 44,
+    "frontend_passed": 15,
+    "browser_passed": 20,
+    "browser_duration": "2.1m",
+    "workers": 1,
+    "matrix_scope": "Both cities, seven views, seven sizes; document overflow, fully contained Operator, Settings Escape/focus return, city-aware actions.",
+    "fixtures": "Demo provider adapters and an intercepted empty map style; dedicated AQ fixture includes six synthetic samples and a missing-value gap.",
+    "additional_checks": [
+      "source provenance Escape and focus return",
+      "discrete capture bounds and keyboard tabs",
+      "reduced motion and persisted presentation preference",
+      "AQ chart summary and axe WCAG 2 A/AA",
+      "actual map camera state and rapid city switching",
+      "200% computed text size at 1440 and 390, nav label bounds and keyboard command"
+    ]
+  },
+  "limitations": [
+    "No hardware GPU/FPS or screen-reader audit.",
+    "Public provider values and tiles can change after capture.",
+    "Native matrix geometry checks cover the overview shell; all seven views are covered by deterministic acceptance."
+  ]
+}

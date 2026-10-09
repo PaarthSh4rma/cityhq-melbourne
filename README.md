@@ -2,12 +2,13 @@
 
 **Two cities. Real public feeds. Honest provenance.**
 
-[Reality Engine delivery](docs/REALITY_ENGINE_DELIVERY.md) · [Overdrive delivery report](docs/OVERDRIVE_DELIVERY.md) · [Operator commands](docs/OPERATOR.md) · [Geographic sources](docs/GEOGRAPHY.md)
+[Nocturne delivery](docs/NOCTURNE_DELIVERY.md) · [Reality Engine delivery](docs/REALITY_ENGINE_DELIVERY.md) · [Overdrive delivery report](docs/OVERDRIVE_DELIVERY.md) · [Operator commands](docs/OPERATOR.md) · [Geographic sources](docs/GEOGRAPHY.md)
 
 CITYHQ is a local-first urban intelligence platform that brings Melbourne and Delhi weather, modelled air quality, available transport information and event listings into one operational workspace. It demonstrates full-stack engineering, data provenance, time-series persistence and reproducible ML while making the boundary between real observations, demo fixtures and predictions explicit.
 
 ## What is implemented
 
+- Original Nocturne instrument system: map-led layout, compact mobile navigation, source disclosures, discrete capture scrubber, optional bounded spatial transition and a restrained Operator console.
 - Seven responsive views with a Melbourne / Delhi selector: Overview, Transit, Weather, Air Quality, Events, Forecasting and Diagnostics.
 - Verified Open-Meteo weather and CAMS air-quality estimates for both cities. PTV HMAC and paginated Ticketmaster adapters with explicit credentials-required states. Legacy Melbourne weather adapters and selectable offline demos remain.
 - Delhi Metro explorer with 245 OSM station nodes and 24 directional route relations; attributed static geometry, station search and route filtering. No live Metro delays are claimed.
@@ -52,14 +53,14 @@ The running local preview uses [port 3105](http://127.0.0.1:3105) and [API 8105]
 
 ## Data status and credentials
 
-| Source | Default | Activation / limitations |
-|---|---|---|
-| Weather, both cities | `open-meteo`, verified modelled current conditions and forecast | Public noncommercial API, no key; CC BY attribution, no SLA |
-| Air quality, both cities | `open-meteo-aq`, verified CAMS model estimates | PM2.5/PM10/NO₂/O₃; US and European AQI explicitly distinct from Indian AQI |
-| Melbourne transit | `ptv` | `PTV_DEVID` + `PTV_API_KEY`; missing keys report `credentials_required` |
-| Delhi transit | `delhi-metro-static` | Bundled public OSM snapshot, ODbL; operational status unknown. Official DMRC download requires a terms/identity form and was not bypassed |
-| Events, both cities | `ticketmaster` | `TICKETMASTER_API_KEY`; bounded pagination; zero listings differs from failure; Delhi coverage incomplete |
-| ML | Separate city artifacts | `--city melbourne` or `--city delhi`; synthetic research labels retained; genuine observed backtesting currently reports insufficient coverage |
+| Source                   | Default                                                         | Activation / limitations                                                                                                                       |
+| ------------------------ | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Weather, both cities     | `open-meteo`, verified modelled current conditions and forecast | Public noncommercial API, no key; CC BY attribution, no SLA                                                                                    |
+| Air quality, both cities | `open-meteo-aq`, verified CAMS model estimates                  | PM2.5/PM10/NO₂/O₃; US and European AQI explicitly distinct from Indian AQI                                                                     |
+| Melbourne transit        | `ptv`                                                           | `PTV_DEVID` + `PTV_API_KEY`; missing keys report `credentials_required`                                                                        |
+| Delhi transit            | `delhi-metro-static`                                            | Bundled public OSM snapshot, ODbL; operational status unknown. Official DMRC download requires a terms/identity form and was not bypassed      |
+| Events, both cities      | `ticketmaster`                                                  | `TICKETMASTER_API_KEY`; bounded pagination; zero listings differs from failure; Delhi coverage incomplete                                      |
+| ML                       | Separate city artifacts                                         | `--city melbourne` or `--city delhi`; synthetic research labels retained; genuine observed backtesting currently reports insufficient coverage |
 
 For a fully offline demo explicitly set `WEATHER_ADAPTER=demo AIR_QUALITY_ADAPTER=demo TRANSPORT_ADAPTER=demo EVENTS_ADAPTER=demo`. Delhi Metro may remain static; `DELHI_TRANSPORT_ADAPTER=demo` is also available. No provider failure silently selects a demo. Credentials stay server-side. Live means a recent real-provider fetch, not proof of a ground-station measurement; data kind is reported separately. Cached data has an age; stale data is excluded from activity scoring.
 
@@ -71,11 +72,11 @@ Melbourne weights: event listings 40, service notices 25, weather suitability 15
 
 The executed synthetic experiment uses 180 days of hourly generated temperature with causal lags and a 60/20/20 chronological split. Test results:
 
-| Model | MAE °C | RMSE °C |
-|---|---:|---:|
-| Persistence baseline | 1.178 | 1.405 |
-| Ridge | 0.707 | 0.880 |
-| Random forest (validation-selected) | 0.755 | 0.938 |
+| Model                               | MAE °C | RMSE °C |
+| ----------------------------------- | -----: | ------: |
+| Persistence baseline                |  1.178 |   1.405 |
+| Ridge                               |  0.707 |   0.880 |
+| Random forest (validation-selected) |  0.755 |   0.938 |
 
 These are real results on **synthetic data**, not evidence of Melbourne forecast accuracy. The separate [Delhi synthetic evaluation](docs/model-evaluation-delhi.json) is also reproducible and does not establish Delhi accuracy. Ridge happened to perform better on the held-out test; selection remains based on validation. [Reproduction and limitations](docs/ML_METHODOLOGY.md) · [Full evaluation artifact](docs/model-evaluation.json).
 
@@ -129,18 +130,18 @@ No cloud services have been provisioned and no deployment has been made. Before 
 
 ## Screenshots
 
-All six views were captured at CSS viewport widths 1920, 1440, 768 and 390. Additional Operator, time-machine and scenario captures are indexed in the [visual verification record](docs/OVERDRIVE_DELIVERY.md). Weather used wttr live-origin retrieval; transit and events remained explicit demos. Screenshots record a moment in time.
+The current Nocturne review covers both cities and all seven views at 1920×1080, 1440×900, 1024×768, 768×1024, 430×932, 390×844 and 320×568. Native browser captures use real geography and the configured public providers; deterministic acceptance screenshots use demo feeds and intercepted tiles. See the [Nocturne verification record](docs/NOCTURNE_DELIVERY.md). Earlier [Overdrive screenshots](docs/OVERDRIVE_DELIVERY.md) retain their historical provider context. Screenshots record a moment in time.
 
-![CITYHQ Overdrive command centre](docs/screenshots/overdrive-overview-1440.jpg)
+![CITYHQ Nocturne command centre](docs/screenshots/nocturne-melbourne-1440x900.jpg)
 
 ## Known limitations and roadmap
 
 - Live histories start empty; keep ingestion running to accumulate hourly observations. No fabricated historical trends.
 - Synthetic forecasts continue the historical research timeline; 3/6-hour recursive horizons are not evaluated.
 - Demo entries have no exact locations. PTV notices without coordinates are listed but not mapped.
-- Ticketmaster coverage is limited to the first 100 upcoming listings over seven days; unknown attendance and impact.
+- Ticketmaster pagination is bounded at 1000 upcoming listings over seven days; coverage, attendance and impact remain unknown.
 - Single-process SQLite architecture; no authentication, distributed ingestion, calibrated intervals or LLM/voice integration.
-- Next: verified live adapters, licensed historical weather import, expanding-window backtests, calibrated intervals, source-specific operational thresholds and a reviewed public deployment.
+- Next: credentialed provider activation, licensed historical weather import, expanding-window backtests, calibrated intervals, source-specific operational thresholds and a reviewed public deployment.
 
 MIT licence. Provider data and map tiles remain subject to their own terms.
 

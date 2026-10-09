@@ -1,0 +1,58 @@
+{
+  "baseline_commit": "a57e1f6",
+  "before": {
+    "phase": "before",
+    "measured_at": "2026-10-09T02:31:39.798044+00:00",
+    "kind": "all emitted production assets, not per-route transfer or FPS",
+    "javascript": {
+      "files": 21,
+      "bytes": 2413452,
+      "gzip_bytes": 696389
+    },
+    "css": {
+      "files": 2,
+      "bytes": 135238,
+      "gzip_bytes": 22570
+    },
+    "warm_document_http": {
+      "requests": 20,
+      "warmups": 3,
+      "url": "http://127.0.0.1:3106/",
+      "body_bytes": 31178,
+      "median_ms": 14.29,
+      "p95_ms": 48.919,
+      "conditions": "Local standalone Node production build, sequential urllib GET, frontend/backend dev and acceptance processes also running. Not browser paint, not FPS."
+    },
+    "timestamp_scope": "measured_at records the asset measurement; warm HTTP baseline was collected later in the same session."
+  },
+  "after": {
+    "phase": "after",
+    "measured_at": "2026-10-09T04:21:01.382723+00:00",
+    "kind": "all emitted production assets, not per-route transfer or FPS",
+    "javascript": {
+      "files": 21,
+      "bytes": 2426808,
+      "gzip_bytes": 699971
+    },
+    "css": {
+      "files": 2,
+      "bytes": 168676,
+      "gzip_bytes": 28448
+    },
+    "warm_document_http": {
+      "requests": 20,
+      "warmups": 3,
+      "url": "http://127.0.0.1:3105/",
+      "body_bytes": 38506,
+      "median_ms": 1.905,
+      "p95_ms": 2.879,
+      "conditions": "Local standalone Node production build, sequential urllib GET. Shared host load is uncontrolled; not browser paint, not FPS."
+    }
+  },
+  "limitations": [
+    "All emitted production assets, not a route-specific transfer budget.",
+    "HTTP samples are sequential localhost HTML retrievals, not browser paint, hydration, provider latency or FPS.",
+    "Shared host load and simultaneous processes differed; lower after latency is not evidence of a rendering speedup.",
+    "No Lighthouse or GPU FPS benchmark was run."
+  ]
+}

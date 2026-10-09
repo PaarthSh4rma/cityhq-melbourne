@@ -1,18 +1,18 @@
 # Geographic provenance
 
-The default map uses MapLibre GL JS and OpenFreeMap’s public dark vector style. Custom paint changes provide navy land, cyan roads, violet rail and readable labels. Attribution remains visible. Building extrusions use the OpenMapTiles `building` layer’s `render_height` and `render_min_height`; missing heights are not invented. Dataset heights are cartographic data, not a guarantee of surveyed building dimensions. Custom styles lacking the expected source/layer retain their compatible basemap and controls.
+The default map uses MapLibre GL JS and OpenFreeMap’s public dark vector style. Nocturne paint changes provide near-black land, muted steel roads and rail, structural edges and readable labels. Attribution remains visible. Building extrusions use the OpenMapTiles `building` layer’s `render_height` and `render_min_height`; missing heights are not invented. Dataset heights are cartographic data, not a guarantee of surveyed building dimensions. A height-filtered footprint outline appears from zoom 15 alongside the existing extrusions; it uses the same supplied building source. Custom styles lacking the expected source/layer retain their compatible basemap and controls.
 
 Verified on 2026-10-08 using OpenStreetMap Nominatim records, with Southern Cross corrected against its Wikidata station record after geocoding returned ambiguous nearby amenities:
 
-| Preset | Longitude, latitude | Record |
-|---|---|---|
-| CBD camera | 144.9655616, -37.8141705 | [Melbourne suburb label point](https://www.openstreetmap.org/relation/2383266); camera context, not a CBD polygon |
-| Flinders Street | 144.9664779, -37.8184161 | [OSM station node](https://www.openstreetmap.org/node/4936370201) |
-| Southern Cross | 144.9525, -37.8183333333 | [Wikidata station coordinates](https://www.wikidata.org/wiki/Q801455), 37°49′6″S 144°57′9″E |
-| Melbourne Park | 144.9790884, -37.8213608 | [OSM sports-centre way](https://www.openstreetmap.org/way/220550128) |
-| Docklands | 144.9394923, -37.8175423 | [OSM suburb relation](https://www.openstreetmap.org/relation/2397613) |
-| Southbank | 144.9640203, -37.8253618 | [OSM suburb relation](https://www.openstreetmap.org/relation/2395850) |
-| St Kilda | 144.981637, -37.8638261 | [OSM suburb relation](https://www.openstreetmap.org/relation/2397474) |
+| Preset          | Longitude, latitude      | Record                                                                                                            |
+| --------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| CBD camera      | 144.9655616, -37.8141705 | [Melbourne suburb label point](https://www.openstreetmap.org/relation/2383266); camera context, not a CBD polygon |
+| Flinders Street | 144.9664779, -37.8184161 | [OSM station node](https://www.openstreetmap.org/node/4936370201)                                                 |
+| Southern Cross  | 144.9525, -37.8183333333 | [Wikidata station coordinates](https://www.wikidata.org/wiki/Q801455), 37°49′6″S 144°57′9″E                       |
+| Melbourne Park  | 144.9790884, -37.8213608 | [OSM sports-centre way](https://www.openstreetmap.org/way/220550128)                                              |
+| Docklands       | 144.9394923, -37.8175423 | [OSM suburb relation](https://www.openstreetmap.org/relation/2397613)                                             |
+| Southbank       | 144.9640203, -37.8253618 | [OSM suburb relation](https://www.openstreetmap.org/relation/2395850)                                             |
+| St Kilda        | 144.981637, -37.8638261  | [OSM suburb relation](https://www.openstreetmap.org/relation/2397474)                                             |
 
 Docklands, Southbank, St Kilda and Melbourne Park use the returned geographic bounding boxes as optional **approximate area envelopes**. They are not administrative boundaries or an inferred incident footprint. Selecting an unlocated listing focuses a matching named place and, if available, outlines that envelope. No matching verified place means no map movement. Demo venues are not geocoded.
 
@@ -35,3 +35,7 @@ Delhi camera presets and reference centre are actual OSM station nodes: Rajiv Ch
 The bundled [Delhi Metro derived database](../backend/app/data/delhi-metro.json) contains 245 station nodes tagged Delhi Metro and 24 directional route relations, from the public OSM extract dated 2026-10-08T13:47:50Z. [Source, query and ODbL attribution](../backend/app/data/README.md). Supplied MultiLineStrings retain gaps rather than inventing connections. Other networks are excluded. This supports static exploration, not live service status, schedules or route availability.
 
 Air quality is a labelled CAMS city-grid estimate (~45 km), with no invented neighbourhood heatmap. Actual model time, standard and status stay visible. Official DMRC download form/terms were not bypassed; details and limitations appear in the [source matrix](REALITY_ENGINE_DELIVERY.md).
+
+## Nocturne presentation
+
+City overview, transport focus and environmental focus use the existing city registry and actual layer state. Pointer interaction cancels camera movement. The coordinate readout updates from the map’s real centre on `moveend`. A spatial sweep lasts at most 850 ms, is explicitly presentation-only, can be skipped, and is disabled by OS reduced motion or the local reduced-effects preference. Its local preference is available in Presentation settings; it makes no sensor claim. No new tile source, terrain reconstruction, fabricated height, heatmap or 3D engine was added.
